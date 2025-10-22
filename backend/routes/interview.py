@@ -30,21 +30,15 @@ async def start_interview(request: InterviewStartRequest):
             "status": "in_progress",
             "interview_date": datetime.utcnow().isoformat()
         }
-
         interview = db.create_interview(interview_data)
         interview_id = interview["id"]
-
         conductor = InterviewConductor(
             position=request.position,
             candidate_name=request.candidate_name
         )
-
         greeting = await conductor.start_interview()
-
         active_interviews[interview_id] = conductor
-
         db.save_transcript(interview_id, "ai", greeting)
-
         return InterviewResponse(
             success=True,
             interview_id=interview_id,
@@ -52,8 +46,9 @@ async def start_interview(request: InterviewStartRequest):
             question_number=1,
             total_questions=conductor.max_questions
         )
-
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -61,24 +56,17 @@ async def start_interview(request: InterviewStartRequest):
 async def respond_to_interview(request: InterviewResponseRequest):
     try:
         interview_id = request.interview_id
-
         if interview_id not in active_interviews:
             raise HTTPException(
                 status_code=404,
                 detail="Interview session not found"
             )
-
         conductor = active_interviews[interview_id]
-
         db.save_transcript(interview_id, "candidate", request.candidate_response)
-
         result = await conductor.process_response(request.candidate_response)
-
         db.save_transcript(interview_id, "ai", result["ai_message"])
-
         if result["is_complete"]:
             db.update_interview_status(interview_id, "completed")
-
         return {
             "success": True,
             "ai_message": result["ai_message"],
@@ -86,7 +74,6 @@ async def respond_to_interview(request: InterviewResponseRequest):
             "total_questions": conductor.max_questions,
             "is_complete": result["is_complete"]
         }
-
     except HTTPException:
         raise
     except Exception as e:
@@ -97,26 +84,19 @@ async def respond_to_interview(request: InterviewResponseRequest):
 async def analyze_interview(request: InterviewAnalysisRequest):
     try:
         interview_id = request.interview_id
-
         if interview_id not in active_interviews:
             raise HTTPException(
                 status_code=404,
                 detail="Interview session not found"
             )
-
         conductor = active_interviews[interview_id]
-
         analysis = await conductor.analyze_interview()
-
         db.save_analysis(interview_id, analysis)
-
         del active_interviews[interview_id]
-
         return AnalysisResponse(
             success=True,
             analysis=analysis
         )
-
     except HTTPException:
         raise
     except Exception as e:
