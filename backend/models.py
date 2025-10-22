@@ -76,3 +76,7 @@ class ExpenseResponse(BaseModel):
     expense: Dict[str, Any]
     ai_category: Optional[str] = None
     confidence: Optional[float] = None
+    ai_insights: Optional[str] = None
+    categorization_model: Optional[str] = None
+    analysis_model: Optional[str] = None
+    tier: Optional[int] = None

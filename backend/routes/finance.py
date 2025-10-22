@@ -47,7 +47,10 @@ async def create_expense(request: ExpenseCreateRequest):
             success=True,
             expense=expense,
             ai_category=ai_result['category'],
-            confidence=ai_result['confidence']
+            confidence=ai_result['confidence'],
+            ai_insights=ai_result.get('ai_insights'),
+            categorization_model=ai_result.get('categorization_model'),
+            analysis_model=ai_result.get('analysis_model')
         )
 
     except Exception as e:

@@ -38,18 +38,45 @@ export default function AddExpensePage() {
 
             if (data.success) {
                 setAiCategory(data.ai_category)
-                toast.success(
-                    `Expense added! AI categorized as: ${data.ai_category} (${Math.round(data.confidence * 100)}% confidence)`,
-                    {
-                        duration: 4000,
-                        icon: '🤖',
-                    }
-                )
 
-                // Navigate after a short delay to show the toast
+                // Show AI tier and models used
+                const tier = data.tier || 1
+                let message = `✅ Expense added!\n\n`
+                message += `📁 Category: ${data.ai_category}\n`
+                message += `🎯 Confidence: ${Math.round(data.confidence * 100)}%\n\n`
+                message += `🤖 AI Processing:\n`
+                message += `├─ Tier ${tier}: ${data.categorization_model}\n`
+
+                if (data.ai_insights) {
+                    message += `└─ Tier 3: ${data.analysis_model} (deep analysis)\n`
+                }
+
+                toast.success(message, {
+                    duration: 5000,
+                    icon: '🤖',
+                    style: {
+                        whiteSpace: 'pre-line'
+                    }
+                })
+
+                // Show deep insights separately
+                if (data.ai_insights) {
+                    setTimeout(() => {
+                        toast(data.ai_insights, {
+                            duration: 10000,
+                            icon: '💡',
+                            style: {
+                                background: '#fffbeb',
+                                borderLeft: '4px solid #f59e0b',
+                                maxWidth: '600px'
+                            }
+                        })
+                    }, 2000)
+                }
+
                 setTimeout(() => {
                     router.push('/finance/list')
-                }, 1500)
+                }, data.ai_insights ? 4000 : 2000)
             } else {
                 toast.error('Failed to add expense')
             }
