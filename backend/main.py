@@ -1,33 +1,47 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from anthropic import Anthropic
-import os
-from dotenv import load_dotenv
 
-load_dotenv()
+from config import API_TITLE, API_DESCRIPTION, API_VERSION, CORS_ORIGINS, SUPABASE_URL
+from routes import interview, health
 
-app = FastAPI()
+app = FastAPI(
+    title=API_TITLE,
+    description=API_DESCRIPTION,
+    version=API_VERSION
+)
 
-# Allow frontend to connect
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+app.include_router(health.router)
+app.include_router(interview.router)
 
-@app.get("/")
-def root():
-    return {"status": "operational", "service": "Project Lightning AI"}
+@app.on_event("startup")
+async def startup_event():
+    """Initialize services on startup"""
+    print("🚀 Starting Project Lightning AI Service...")
+    print(f"📡 Connected to Supabase: {SUPABASE_URL}")
+    print("🤖 AI Interview Conductor: Ready")
+    print("✅ Service operational!")
 
-@app.post("/api/chat")
-def chat(message: dict):
-    response = client.messages.create(
-        model="claude-sonnet-4-5-20250929",
-        max_tokens=1024,
-        messages=[{"role": "user", "content": message["message"]}]
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Cleanup on shutdown"""
+    print("👋 Shutting down AI Service...")
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=8000,
+        reload=True,
+        log_level="info"
     )
-    return {"response": response.content[0].text}
