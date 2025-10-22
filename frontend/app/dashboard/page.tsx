@@ -94,7 +94,12 @@ export default function Dashboard() {
                             <li>Smart onboarding workflows</li>
                             <li>Intelligent task assignment</li>
                         </ul>
-                        <button>Coming Tomorrow 🚀</button>
+                        <button
+                            onClick={() => router.push('/hr/interview')}
+                            className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold py-4 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl"
+                        >
+                            Start Interview 🚀
+                        </button>
                     </div>
 
                     <div className="module-card inactive">
