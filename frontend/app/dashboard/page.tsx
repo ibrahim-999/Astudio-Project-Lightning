@@ -78,7 +78,7 @@ export default function Dashboard() {
 
             <div className="container">
                 <div className="hero">
-                    <div className="badge">✅ Day 1 Complete</div>
+                    <div className="badge">✅ Day 3 Complete - All Modules Active</div>
                     <h2>Welcome to Your AI-Native ERP</h2>
                     <p>Built in 4 days. Powered by AI. Ready to transform creative agencies.</p>
                 </div>
@@ -102,9 +102,9 @@ export default function Dashboard() {
                         </button>
                     </div>
 
-                    <div className="module-card inactive">
+                    <div className="module-card active">
                         <div className="module-icon">📊</div>
-                        <div className="module-badge planned">Day 3 - Planned</div>
+                        <div className="module-badge next">Active</div>
                         <h3>Projects</h3>
                         <p>AI Project Coordinator creates plans, assigns teams, predicts timelines, and prevents delays.</p>
                         <ul className="module-features">
@@ -112,12 +112,17 @@ export default function Dashboard() {
                             <li>AI-powered team matching</li>
                             <li>Timeline prediction & risk alerts</li>
                         </ul>
-                        <button disabled>Coming Soon</button>
+                        <button
+                            onClick={() => router.push('/projects')}
+                            className="w-full bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-semibold py-4 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl"
+                        >
+                            Create Project 🚀
+                        </button>
                     </div>
 
-                    <div className="module-card inactive">
+                    <div className="module-card active">
                         <div className="module-icon">💰</div>
-                        <div className="module-badge planned">Day 3 - Planned</div>
+                        <div className="module-badge next">Active</div>
                         <h3>Finance</h3>
                         <p>AI Accountant categorizes expenses, predicts cash flow, and alerts about budget risks.</p>
                         <ul className="module-features">
@@ -125,13 +130,18 @@ export default function Dashboard() {
                             <li>Cash flow predictions</li>
                             <li>Smart financial alerts</li>
                         </ul>
-                        <button disabled>Coming Soon</button>
+                        <button
+                            onClick={() => router.push('/finance')}
+                            className="w-full bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700 text-white font-semibold py-4 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl"
+                        >
+                            Add Expense 💰
+                        </button>
                     </div>
                 </div>
 
                 <div className="info-grid">
                     <div className="info-card">
-                        <h3>✅ Day 1 Complete!</h3>
+                        <h3>✅ Day 3 Complete!</h3>
                         <ul className="checklist">
                             <li>Authentication system with Supabase</li>
                             <li>PostgreSQL database with 5 tables</li>
@@ -142,15 +152,15 @@ export default function Dashboard() {
                     </div>
 
                     <div className="info-card next-steps-card">
-                        <h3>🚀 Day 2: HR Module</h3>
+                        <h3>🎉 All 3 Modules Complete!</h3>
                         <p style={{ marginBottom: '20px', opacity: 0.9 }}>
-                            Tomorrow we build the AI Interviewer - a conversational AI that conducts real job interviews!
+                            HR, Projects, and Finance modules are fully functional with AI!
                         </p>
                         <ul className="next-steps-list">
-                            <li>Real-time AI conversation interface</li>
-                            <li>Interview transcript storage</li>
-                            <li>AI candidate scoring & analysis</li>
-                            <li>Interview results dashboard</li>
+                            <li>AI Interview Conductor with analysis</li>
+                            <li>Natural language project creation</li>
+                            <li>AI expense categorization</li>
+                            <li>Real-time data across all modules</li>
                         </ul>
                     </div>
                 </div>
