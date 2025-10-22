@@ -90,5 +90,79 @@ class DatabaseService:
         except:
             return False
 
+    @staticmethod
+    def create_project(data: Dict[str, Any]) -> Dict[str, Any]:
+            result = supabase.table("projects").insert(data).execute()
+            return result.data[0]
+
+    @staticmethod
+    def create_task(data: Dict[str, Any]) -> Dict[str, Any]:
+            """Create new task"""
+            result = supabase.table("tasks").insert(data).execute()
+            return result.data[0]
+
+    @staticmethod
+    def get_projects(organization_id: str) -> List[Dict[str, Any]]:
+            """Get all projects"""
+            result = supabase.table("projects")\
+                .select("*")\
+                .eq("organization_id", organization_id)\
+                .order("created_at", desc=True)\
+                .execute()
+            return result.data
+
+    @staticmethod
+    def get_project_tasks(project_id: str) -> List[Dict[str, Any]]:
+            """Get tasks for a project"""
+            result = supabase.table("tasks")\
+                .select("*")\
+                .eq("project_id", project_id)\
+                .order("created_at")\
+                .execute()
+            return result.data
+
+    @staticmethod
+    def update_task(task_id: str, data: Dict[str, Any]):
+            """Update task"""
+            supabase.table("tasks").update(data).eq("id", task_id).execute()
+
+
+    @staticmethod
+    def create_expense(data: Dict[str, Any]) -> Dict[str, Any]:
+                """Create new expense"""
+                result = supabase.table("expenses").insert(data).execute()
+                return result.data[0]
+
+    @staticmethod
+    def get_expenses(organization_id: str) -> List[Dict[str, Any]]:
+                """Get all expenses"""
+                result = supabase.table("expenses")\
+                    .select("*")\
+                    .eq("organization_id", organization_id)\
+                    .order("expense_date", desc=True)\
+                    .execute()
+                return result.data
+
+    @staticmethod
+    def get_expense_summary(organization_id: str) -> Dict[str, Any]:
+                """Get expense summary by category"""
+                expenses = supabase.table("expenses")\
+                    .select("category, amount")\
+                    .eq("organization_id", organization_id)\
+                    .execute()
+
+                summary = {}
+                total = 0
+
+                for exp in expenses.data:
+                    cat = exp.get('category', 'Other')
+                    amt = float(exp.get('amount', 0))
+                    summary[cat] = summary.get(cat, 0) + amt
+                    total += amt
+
+                return {
+                    "by_category": summary,
+                    "total": total
+                }
 
 db = DatabaseService()

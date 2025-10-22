@@ -43,3 +43,36 @@ class InterviewDetailsResponse(BaseModel):
     interview: Dict[str, Any]
     transcripts: List[Dict[str, Any]]
     analysis: Optional[Dict[str, Any]]
+
+class ProjectCreateRequest(BaseModel):
+    brief: str = Field(..., min_length=10)
+    client_name: Optional[str] = None
+    organization_id: str
+
+
+class ProjectResponse(BaseModel):
+    success: bool
+    project: Dict[str, Any]
+    tasks: List[Dict[str, Any]]
+
+
+class TaskUpdateRequest(BaseModel):
+    task_id: str
+    status: Optional[str] = None
+    assigned_to: Optional[str] = None
+
+
+class ExpenseCreateRequest(BaseModel):
+    description: str = Field(..., min_length=3)
+    amount: float = Field(..., gt=0)
+    expense_date: str
+    vendor: Optional[str] = None
+    project_id: Optional[str] = None
+    organization_id: str
+
+
+class ExpenseResponse(BaseModel):
+    success: bool
+    expense: Dict[str, Any]
+    ai_category: Optional[str] = None
+    confidence: Optional[float] = None
