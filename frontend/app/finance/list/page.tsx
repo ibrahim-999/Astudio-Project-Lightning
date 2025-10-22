@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import toast, { Toaster } from 'react-hot-toast'
 import '../../styles.css'
 
 export default function ExpenseListPage() {
@@ -21,9 +22,12 @@ export default function ExpenseListPage() {
 
             if (data.success) {
                 setExpenses(data.expenses)
+            } else {
+                toast.error('Failed to load expenses')
             }
         } catch (error) {
             console.error('Error loading expenses:', error)
+            toast.error('Error loading expenses')
         } finally {
             setLoading(false)
         }
@@ -67,6 +71,31 @@ export default function ExpenseListPage() {
 
     return (
         <div className="dashboard">
+            <Toaster
+                position="top-center"
+                toastOptions={{
+                    style: {
+                        background: '#fff',
+                        color: '#333',
+                        padding: '16px',
+                        borderRadius: '12px',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                    },
+                    success: {
+                        iconTheme: {
+                            primary: '#10b981',
+                            secondary: '#fff',
+                        },
+                    },
+                    error: {
+                        iconTheme: {
+                            primary: '#ef4444',
+                            secondary: '#fff',
+                        },
+                    },
+                }}
+            />
+
             <nav className="navbar">
                 <div className="navbar-container">
                     <div className="navbar-brand">
