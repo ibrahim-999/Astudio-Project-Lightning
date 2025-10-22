@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import toast, { Toaster } from 'react-hot-toast'
 import '../styles.css'
 
 export default function AddExpensePage() {
@@ -14,7 +15,7 @@ export default function AddExpensePage() {
 
     const addExpense = async () => {
         if (!description.trim() || !amount) {
-            alert('Please fill in required fields')
+            toast.error('Please fill in required fields')
             return
         }
 
@@ -37,14 +38,24 @@ export default function AddExpensePage() {
 
             if (data.success) {
                 setAiCategory(data.ai_category)
-                alert(`✅ Expense added! AI categorized as: ${data.ai_category} (${Math.round(data.confidence * 100)}% confidence)`)
-                router.push('/finance/list')
+                toast.success(
+                    `Expense added! AI categorized as: ${data.ai_category} (${Math.round(data.confidence * 100)}% confidence)`,
+                    {
+                        duration: 4000,
+                        icon: '🤖',
+                    }
+                )
+
+                // Navigate after a short delay to show the toast
+                setTimeout(() => {
+                    router.push('/finance/list')
+                }, 1500)
             } else {
-                alert('Failed to add expense')
+                toast.error('Failed to add expense')
             }
         } catch (error) {
             console.error(error)
-            alert('Error adding expense')
+            toast.error('Error adding expense')
         } finally {
             setLoading(false)
         }
@@ -52,6 +63,31 @@ export default function AddExpensePage() {
 
     return (
         <div className="dashboard">
+            <Toaster
+                position="top-center"
+                toastOptions={{
+                    style: {
+                        background: '#fff',
+                        color: '#333',
+                        padding: '16px',
+                        borderRadius: '12px',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                    },
+                    success: {
+                        iconTheme: {
+                            primary: '#10b981',
+                            secondary: '#fff',
+                        },
+                    },
+                    error: {
+                        iconTheme: {
+                            primary: '#ef4444',
+                            secondary: '#fff',
+                        },
+                    },
+                }}
+            />
+
             <nav className="navbar">
                 <div className="navbar-container">
                     <div className="navbar-brand">
