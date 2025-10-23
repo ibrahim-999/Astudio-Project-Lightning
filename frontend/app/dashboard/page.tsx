@@ -419,6 +419,33 @@ export default function Dashboard() {
                                     Add Expense 💰
                                 </button>
                             </div>
+                            <div className="module-card active">
+                                <div className="module-icon">🤖</div>
+                                <div className="module-badge next">Active</div>
+                                <h3>AI Assistant</h3>
+                                <p>Unified AI chat interface. Talk naturally to manage expenses, projects, and HR - all in one conversation.</p>
+                                <ul className="module-features">
+                                    <li>Natural language commands</li>
+                                    <li>Cross-module intelligence</li>
+                                    <li>Proactive AI suggestions</li>
+                                </ul>
+                                <button
+                                    onClick={() => router.push('/ai')}
+                                    style={{
+                                        width: '100%',
+                                        padding: '16px',
+                                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '12px',
+                                        fontSize: '16px',
+                                        fontWeight: 600,
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    Open AI Chat 💬
+                                </button>
+                            </div>
                         </div>
 
                         <div className="info-grid">

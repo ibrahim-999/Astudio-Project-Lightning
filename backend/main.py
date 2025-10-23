@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import API_TITLE, API_DESCRIPTION, API_VERSION, CORS_ORIGINS, SUPABASE_URL
-from routes import interview, health, project, finance, migration
+from routes import interview, health, project, finance, migration, orchestrator
 
 app = FastAPI(
     title=API_TITLE,
@@ -24,6 +24,7 @@ app.include_router(interview.router)
 app.include_router(project.router)
 app.include_router(finance.router)
 app.include_router(migration.router)
+app.include_router(orchestrator.router)
 
 @app.on_event("startup")
 async def startup_event():
