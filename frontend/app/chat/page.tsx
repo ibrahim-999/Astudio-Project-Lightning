@@ -2,12 +2,14 @@
 import { useState, useEffect } from 'react'
 import { supabase, API_URL } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
+import type { Session } from '@supabase/supabase-js'  // At the top
+
 
 export default function ChatPage() {
     const [message, setMessage] = useState('')
     const [response, setResponse] = useState('')
     const [loading, setLoading] = useState(false)
-    const [session, setSession] = useState(null)
+    const [session, setSession] = useState<Session | null>(null)  // In the component
     const [organizationId, setOrganizationId] = useState('')
     const router = useRouter()
 

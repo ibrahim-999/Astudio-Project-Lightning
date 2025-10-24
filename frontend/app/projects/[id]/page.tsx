@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import '../../styles.css'
 import { API_URL, supabase } from '@/lib/supabase'
+import type { Session } from '@supabase/supabase-js'  // At the top
 
 export default function ProjectDetailsPage() {
     const params = useParams()
@@ -11,7 +12,7 @@ export default function ProjectDetailsPage() {
 
     const [tasks, setTasks] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
-    const [session, setSession] = useState(null)
+    const [session, setSession] = useState<Session | null>(null)  // In the component
     const [organizationId, setOrganizationId] = useState('')
     const [projectName, setProjectName] = useState('Project Tasks')
 
