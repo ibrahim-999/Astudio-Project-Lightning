@@ -46,7 +46,9 @@ export default function ExpenseListPage() {
         }
     }
 
-    const getCategoryColor = (category: string) => {
+    const getCategoryColor = (category: string | null) => {
+        if (!category) return '#6b7280'
+
         const colors: any = {
             'Software & Tools': '#3b82f6',
             'Marketing': '#ec4899',
@@ -237,7 +239,8 @@ export default function ExpenseListPage() {
                                             marginTop: '4px',
                                             fontWeight: 600
                                         }}>
-                                            {expense.ai_categorized && '🤖 '}{expense.category}
+                                            {expense.ai_categorized && '🤖 '}
+                                            {expense.category || 'Uncategorized'}  {/* Show "Uncategorized" if NULL */}
                                         </div>
                                     </div>
                                 </div>

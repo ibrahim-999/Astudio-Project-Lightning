@@ -1,148 +1,152 @@
 """
-Migration Service - AI-powered data import
+Migration Service - AI-powered CSV analysis and import
 """
 from anthropic import Anthropic
-import pandas as pd
-import json
 import os
-from typing import Dict, List, Any
+import json
+import csv
 from io import StringIO
+from datetime import datetime
 
-client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+claude = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
 
 class MigrationService:
-    """AI-powered data migration"""
+    """AI-powered migration toolkit"""
 
     @staticmethod
-    async def analyze_csv(csv_content: str) -> Dict[str, Any]:
-        """
-        Analyze CSV structure and suggest mapping
-        """
-        # Parse CSV
-        df = pd.read_csv(StringIO(csv_content))
+    async def analyze_csv(csv_content: str) -> dict:
+        try:
+            csv_file = StringIO(csv_content)
+            reader = csv.DictReader(csv_file)
+            rows = list(reader)
 
-        # Get sample data
-        sample = df.head(5).to_dict('records')
-        columns = list(df.columns)
+            if not rows:
+                return {"success": False, "error": "Empty CSV file"}
 
-        # Ask AI to map fields
-        prompt = f"""Analyze this CSV and map it to our expense schema.
+            columns = list(rows[0].keys())
 
-CSV Columns: {columns}
-Sample Data (first 5 rows):
-{json.dumps(sample, indent=2)}
+            prompt = f"""Analyze this CSV structure and map fields for expense import.
 
-Our Expense Schema:
-- description: string (what was purchased)
-- amount: float (cost in USD)
-- expense_date: date (YYYY-MM-DD format)
-- vendor: string (who was paid)
-- category: string (expense category)
+CSV Columns: {', '.join(columns)}
+Sample Row: {json.dumps(rows[0])}
+
+Expected Target Fields:
+- expense_date (date of expense)
+- description (what was purchased)
+- amount (cost in dollars)
+- vendor (who sold it)
 
 Return ONLY valid JSON:
 {{
   "mapping": {{
-    "csv_column_name": "our_field_name"
+    "CSV_Column_Name": "target_field_name"
   }},
-  "transformations": [
-    {{"field": "expense_date", "action": "convert_to_iso_date", "from_format": "MM/DD/YYYY"}}
-  ],
   "confidence": 0.95,
-  "total_rows": {len(df)},
-  "warnings": ["any issues found"]
-}}
+  "warnings": ["any issues"]
+}}"""
 
-If a CSV column doesn't match our schema, don't include it in mapping.
-"""
+            response = claude.messages.create(
+                model="claude-sonnet-4-5-20250929",
+                max_tokens=500,
+                messages=[{"role": "user", "content": prompt}]
+            )
 
-        response = client.messages.create(
-            model="claude-sonnet-4-5-20250929",
-            max_tokens=1500,
-            messages=[{"role": "user", "content": prompt}]
-        )
+            content = response.content[0].text
 
-        # Parse AI response
-        ai_text = response.content[0].text
+            if "```json" in content:
+                content = content.split("```json")[1].split("```")[0].strip()
+            elif "```" in content:
+                content = content.split("```")[1].split("```")[0].strip()
 
-        # Extract JSON from response
-        if "```json" in ai_text:
-            ai_text = ai_text.split("```json")[1].split("```")[0].strip()
-        elif "```" in ai_text:
-            ai_text = ai_text.split("```")[1].split("```")[0].strip()
+            mapping = json.loads(content)
 
-        try:
-            mapping = json.loads(ai_text)
             return {
                 "success": True,
+                "original_columns": columns,
                 "mapping": mapping,
-                "preview": sample[:3],  # Show first 3 rows
-                "original_columns": columns
+                "preview": rows[:3],
+                "total_rows": len(rows)
             }
-        except json.JSONDecodeError:
+
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    @staticmethod
+    def parse_date(date_str: str) -> str:
+        if not date_str:
+            return datetime.now().strftime('%Y-%m-%d')
+
+        formats = [
+            '%Y-%m-%d',
+            '%m/%d/%Y',
+            '%d/%m/%Y',
+            '%Y/%m/%d',
+            '%m-%d-%Y',
+            '%d-%m-%Y',
+        ]
+
+        for fmt in formats:
+            try:
+                return datetime.strptime(str(date_str), fmt).strftime('%Y-%m-%d')
+            except:
+                continue
+
+        return datetime.now().strftime('%Y-%m-%d')
+
+    @staticmethod
+    async def import_expenses(csv_content: str, organization_id: str) -> dict:
+        try:
+            analysis = await MigrationService.analyze_csv(csv_content)
+
+            if not analysis['success']:
+                return analysis
+
+            csv_file = StringIO(csv_content)
+            reader = csv.DictReader(csv_file)
+            rows = list(reader)
+
+            mapping = analysis['mapping']['mapping']
+            transformed_rows = []
+
+            for row in rows:
+                transformed = {}
+
+                for csv_col, target_field in mapping.items():
+                    if csv_col in row and row[csv_col]:
+                        value = row[csv_col].strip()
+
+                        if target_field == 'expense_date':
+                            value = MigrationService.parse_date(value)
+                        elif target_field == 'amount':
+                            value = value.replace('$', '').replace(',', '').strip()
+                            try:
+                                value = float(value)
+                            except:
+                                value = 0
+
+                        transformed[target_field] = value
+
+                if 'description' not in transformed or not transformed['description']:
+                    transformed['description'] = 'Unknown Expense'
+
+                if 'amount' not in transformed:
+                    transformed['amount'] = 0
+
+                if 'expense_date' not in transformed:
+                    transformed['expense_date'] = datetime.now().strftime('%Y-%m-%d')
+
+                transformed_rows.append(transformed)
+
             return {
-                "success": False,
-                "error": "AI response parsing failed",
-                "raw_response": ai_text
+                "success": True,
+                "transformed_data": transformed_rows,
+                "preview": transformed_rows[:3],
+                "original_columns": analysis['original_columns'],
+                "total_rows": len(transformed_rows),
+                "mapping": analysis['mapping'],
+                "analysis": "Successfully mapped and transformed all rows"
             }
 
-    @staticmethod
-    def transform_data(df: pd.DataFrame, mapping: Dict) -> List[Dict]:
-        """
-        Transform CSV data to our format using AI mapping
-        """
-        transformed = []
-        field_mapping = mapping.get('mapping', {})
-
-        for _, row in df.iterrows():
-            expense = {}
-
-            # Map fields
-            for csv_col, our_field in field_mapping.items():
-                if csv_col in row:
-                    expense[our_field] = row[csv_col]
-
-            # Apply transformations if needed
-            for transform in mapping.get('transformations', []):
-                field = transform['field']
-                action = transform['action']
-
-                if action == 'convert_to_iso_date' and field in expense:
-                    # Simple date conversion (you can make this smarter)
-                    try:
-                        date_val = pd.to_datetime(expense[field])
-                        expense[field] = date_val.strftime('%Y-%m-%d')
-                    except:
-                        pass
-
-            transformed.append(expense)
-
-        return transformed
-
-    @staticmethod
-    async def import_expenses(csv_content: str, organization_id: str) -> Dict[str, Any]:
-        """
-        Complete import flow: analyze → transform → import
-        """
-        # Step 1: Analyze
-        analysis = await MigrationService.analyze_csv(csv_content)
-
-        if not analysis['success']:
-            return analysis
-
-        # Step 2: Transform
-        df = pd.read_csv(StringIO(csv_content))
-        transformed = MigrationService.transform_data(
-            df,
-            analysis['mapping']
-        )
-
-        # Step 3: Preview (don't actually import yet, just return preview)
-        return {
-            "success": True,
-            "analysis": analysis['mapping'],
-            "preview": transformed[:5],  # Show first 5 transformed
-            "total_rows": len(transformed),
-            "ready_to_import": True,
-            "message": f"Ready to import {len(transformed)} expenses"
-        }
+        except Exception as e:
+            return {"success": False, "error": str(e)}

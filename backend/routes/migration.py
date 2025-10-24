@@ -1,29 +1,21 @@
-"""
-Migration API endpoints
-"""
+"""Migration API endpoints"""
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from migration_service import MigrationService
+from project_service import FinanceAssistant
 from database import db
-import io
+from datetime import datetime
 
 router = APIRouter(prefix="/api/migration", tags=["migration"])
 
 
 @router.post("/analyze-csv")
 async def analyze_csv(file: UploadFile = File(...)):
-    """
-    Analyze CSV structure without importing
-    """
+    """Analyze CSV structure"""
     try:
-        # Read file content
         content = await file.read()
         csv_content = content.decode('utf-8')
-
-        # Analyze with AI
         result = await MigrationService.analyze_csv(csv_content)
-
         return result
-
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -33,66 +25,54 @@ async def import_expenses(
     file: UploadFile = File(...),
     organization_id: str = "00000000-0000-0000-0000-000000000001"
 ):
-    """
-    Import expenses from CSV using AI mapping
-    """
     try:
-        # Read file
         content = await file.read()
         csv_content = content.decode('utf-8')
 
-        # Analyze and transform
         result = await MigrationService.import_expenses(csv_content, organization_id)
 
         if not result['success']:
             return result
 
-        # Actually import to database
+        all_expenses = result.get('transformed_data', result['preview'])
         imported_count = 0
-        for expense_data in result['preview']:  # In real use, iterate all transformed data
-            # Add required fields
-            expense_data['organization_id'] = organization_id
-            expense_data['ai_categorized'] = True
-            expense_data['status'] = 'pending'
 
-            # Import
+        for expense_data in all_expenses:
             try:
+                ai_result = await FinanceAssistant.categorize_expense(
+                    description=expense_data.get('description', ''),
+                    amount=float(expense_data.get('amount', 0)),
+                    vendor=expense_data.get('vendor')
+                )
+
+                expense_data['category'] = ai_result.get('category', 'Other')
+                expense_data['ai_categorized'] = True
+                expense_data['ai_category_confidence'] = ai_result.get('confidence', 0)
+                expense_data['organization_id'] = organization_id
+                expense_data['status'] = 'pending'
+
+                if 'expense_date' not in expense_data:
+                    expense_data['expense_date'] = datetime.now().strftime('%Y-%m-%d')
+
                 db.create_expense(expense_data)
                 imported_count += 1
+
             except Exception as e:
-                print(f"Failed to import expense: {e}")
+                continue
 
         return {
             "success": True,
             "imported": imported_count,
-            "total": result['total_rows'],
-            "analysis": result['analysis']
+            "total": len(all_expenses)
         }
-
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/demo")
 async def demo_migration():
-    """
-    Demo endpoint showing migration capability
-    """
+    """Demo endpoint"""
     return {
         "success": True,
-        "demo": "Migration Toolkit Active",
-        "features": [
-            "AI-powered CSV analysis",
-            "Automatic field mapping",
-            "Data transformation",
-            "Preview before import",
-            "Bulk import capability"
-        ],
-        "supported_formats": [
-            "CSV (any structure)",
-            "Excel exports",
-            "QuickBooks exports",
-            "Generic expense reports"
-        ],
-        "time_to_migrate": "Under 2 minutes"
+        "demo": "Migration Active"
     }

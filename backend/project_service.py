@@ -1,21 +1,26 @@
-from openai import AsyncOpenAI
+"""
+Project Service - AI Project Coordinator and Finance Assistant
+"""
 from anthropic import Anthropic
-import json
 import os
+import json
 
 claude = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-openai_client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+try:
+    from openai import AsyncOpenAI
+    openai_client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    OPENAI_AVAILABLE = True
+except Exception:
+    OPENAI_AVAILABLE = False
+    openai_client = None
+
 
 class ProjectCoordinator:
-    """AI Project Coordinator - Creates projects from natural language"""
-    
+    """AI Project Coordinator"""
+
     @staticmethod
     async def create_from_brief(brief: str, client_name: str = None) -> dict:
-        """
-        Create project structure from natural language brief
-        AI extracts: name, description, tasks, timeline
-        """
-        
         prompt = f"""Analyze this project brief and create a structured project plan.
 
 PROJECT BRIEF:
@@ -49,20 +54,17 @@ Keep it practical and realistic. Generate 5-8 tasks."""
             max_tokens=2000,
             messages=[{"role": "user", "content": prompt}]
         )
-        
-        # Parse response
+
         content = response.content[0].text
-        
-        # Extract JSON
+
         if "```json" in content:
             content = content.split("```json")[1].split("```")[0].strip()
         elif "```" in content:
             content = content.split("```")[1].split("```")[0].strip()
-        
+
         try:
             return json.loads(content)
         except:
-            # Fallback
             return {
                 "project_name": "New Project",
                 "description": brief,
@@ -77,63 +79,77 @@ Keep it practical and realistic. Generate 5-8 tasks."""
                 ]
             }
 
+
 class FinanceAssistant:
-    """
-    3-Tier Multi-AI Strategy:
-    1. GPT-3.5-turbo: Simple categorization (cheapest)
-    2. Claude Haiku: Medium complexity (fast Claude)
-    3. Claude Sonnet: Deep analysis (premium Claude)
-    """
+    """3-Tier AI categorization with automatic fallback"""
 
     @staticmethod
     async def categorize_expense(description: str, amount: float, vendor: str = None) -> dict:
-        """
-        Smart AI routing based on expense complexity and value
-        """
+        category_result = None
 
-        print(f"💰 Categorizing expense: ${amount} - {description}")
+        if OPENAI_AVAILABLE:
+            try:
+                category_result = await FinanceAssistant._tier1_gpt_categorize(
+                    description, amount, vendor
+                )
+            except Exception:
+                category_result = None
 
-        # Tier 1: Simple categorization (GPT-3.5-turbo)
-        # Use for ALL expenses - cheapest, fastest
-        try:
-            category_result = await FinanceAssistant._tier1_gpt_categorize(
-                description, amount, vendor
-            )
-        except Exception as e:
-            print(f"⚠️ GPT-3.5 failed, falling back to Claude Haiku")
-            category_result = await FinanceAssistant._tier2_haiku_categorize(
-                description, amount, vendor
-            )
+        if not category_result or not isinstance(category_result, dict):
+            try:
+                category_result = await FinanceAssistant._tier2_haiku_categorize(
+                    description, amount, vendor
+                )
+            except Exception:
+                category_result = None
 
-        # Tier 2: Medium complexity (Claude Haiku)
-        # Use if GPT-3.5 has low confidence OR amount $100-$500
-        if category_result.get('confidence', 0) < 0.8 or (100 <= amount <= 500):
-            print(f"🔄 Low confidence or medium value - upgrading to Claude Haiku")
-            category_result = await FinanceAssistant._tier2_haiku_categorize(
-                description, amount, vendor
-            )
+        if not category_result or not isinstance(category_result, dict):
+            category_result = {
+                'category': 'Other',
+                'confidence': 0.5,
+                'reasoning': 'AI categorization unavailable',
+                'categorization_model': 'fallback',
+                'tier': 0
+            }
 
-        # Tier 3: Deep analysis (Claude Sonnet)
-        # Use ONLY for high-value expenses (>$500)
+        if 'category' not in category_result or not category_result['category']:
+            category_result['category'] = 'Other'
+
+        if OPENAI_AVAILABLE and (category_result.get('confidence', 0) < 0.8 or (100 <= amount <= 500)):
+            try:
+                haiku_result = await FinanceAssistant._tier2_haiku_categorize(
+                    description, amount, vendor
+                )
+                if haiku_result and haiku_result.get('category'):
+                    category_result = haiku_result
+            except Exception:
+                pass
+
         if amount > 500:
-            print(f"💡 High value detected - using Claude Sonnet for deep analysis")
-            analysis = await FinanceAssistant._tier3_sonnet_analysis(
-                description, amount, vendor, category_result['category']
-            )
-            category_result['ai_insights'] = analysis
-            category_result['analysis_model'] = 'claude-sonnet-4-5'
+            try:
+                analysis = await FinanceAssistant._tier3_sonnet_analysis(
+                    description, amount, vendor, category_result['category']
+                )
+                category_result['ai_insights'] = analysis
+                category_result['analysis_model'] = 'claude-sonnet-4-5'
+            except Exception:
+                category_result['ai_insights'] = None
+                category_result['analysis_model'] = 'none'
         else:
             category_result['ai_insights'] = None
             category_result['analysis_model'] = 'none'
+
+        if not category_result.get('category'):
+            category_result['category'] = 'Other'
+        if not category_result.get('confidence'):
+            category_result['confidence'] = 0.5
 
         return category_result
 
     @staticmethod
     async def _tier1_gpt_categorize(description: str, amount: float, vendor: str = None) -> dict:
-        """
-        Tier 1: GPT-3.5-turbo (Cheapest & Fastest)
-        Cost: ~$0.0005 per categorization
-        """
+        if not OPENAI_AVAILABLE or not openai_client:
+            raise Exception("OpenAI not available")
 
         prompt = f"""Categorize this expense into ONE category:
 
@@ -162,7 +178,6 @@ Respond with ONLY valid JSON:
 
         content = response.choices[0].message.content.strip()
 
-        # Extract JSON
         if "```json" in content:
             content = content.split("```json")[1].split("```")[0].strip()
         elif "```" in content:
@@ -172,17 +187,10 @@ Respond with ONLY valid JSON:
         result['categorization_model'] = 'gpt-3.5-turbo'
         result['tier'] = 1
 
-        print(f"✅ [Tier 1 - GPT-3.5] {result['category']} ({result.get('confidence', 0):.0%})")
         return result
 
     @staticmethod
     async def _tier2_haiku_categorize(description: str, amount: float, vendor: str = None) -> dict:
-        """
-        Tier 2: Claude Haiku 3.5 (Fast & Accurate)
-        Cost: ~$0.001 per categorization
-        Use: Medium complexity or low confidence from Tier 1
-        """
-
         prompt = f"""Categorize this expense with careful reasoning:
 
 Expense: {description}
@@ -191,7 +199,7 @@ Amount: ${amount}
 
 Categories: Software & Tools, Marketing, Office Supplies, Travel, Client Meetings, Freelancers, Other
 
-Return JSON only:
+Return ONLY valid JSON:
 {{"category": "exact category", "confidence": 0.0-1.0, "reasoning": "why this category"}}"""
 
         response = claude.messages.create(
@@ -203,7 +211,6 @@ Return JSON only:
 
         content = response.content[0].text.strip()
 
-        # Extract JSON
         if "```json" in content:
             content = content.split("```json")[1].split("```")[0].strip()
         elif "```" in content:
@@ -213,17 +220,10 @@ Return JSON only:
         result['categorization_model'] = 'claude-haiku-3.5'
         result['tier'] = 2
 
-        print(f"✅ [Tier 2 - Haiku] {result['category']} ({result.get('confidence', 0):.0%})")
         return result
 
     @staticmethod
     async def _tier3_sonnet_analysis(description: str, amount: float, vendor: str, category: str) -> str:
-        """
-        Tier 3: Claude Sonnet 4.5 (Deep Strategic Analysis)
-        Cost: ~$0.003 per analysis
-        Use: ONLY for high-value expenses (>$500)
-        """
-
         prompt = f"""Analyze this high-value expense with executive-level strategic thinking:
 
 💰 Expense Details:
@@ -248,6 +248,4 @@ Keep response concise but insightful (4-5 sentences)."""
             messages=[{"role": "user", "content": prompt}]
         )
 
-        insights = response.content[0].text
-        print(f"✅ [Tier 3 - Sonnet] Deep analysis complete")
-        return insights
+        return response.content[0].text
