@@ -18,58 +18,84 @@ export default function LoginPage() {
         setMessage(null)
 
         try {
-            const { data, error } = await supabase.auth.signUp({
+            console.log('🔵 Starting signup for:', email)
+
+            const requestBody: any = {
                 email,
-                password,
+                password
+            }
+
+            const response = await fetch(`${API_URL}/api/auth/signup`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(requestBody)
             })
 
-            if (error) {
-                setMessage({ text: error.message, type: 'error' })
+            const data = await response.json()
+            console.log('Signup response:', data)
+
+            if (!response.ok || !data.success) {
+                let errorMessage = 'Signup failed. Please try again.'
+
+                if (data.detail) {
+                    if (Array.isArray(data.detail)) {
+                        errorMessage = data.detail.map((err: any) => err.msg).join(', ')
+                    }
+                    else if (typeof data.detail === 'string') {
+                        errorMessage = data.detail
+                    }
+                    else if (typeof data.detail === 'object') {
+                        errorMessage = JSON.stringify(data.detail)
+                    }
+                } else if (data.message) {
+                    errorMessage = data.message
+                }
+
+                setMessage({
+                    text: errorMessage,
+                    type: 'error'
+                })
                 setLoading(false)
                 return
             }
 
-            // ✅ NEW: Create organization for the new user
-            if (data.user) {
-                try {
-                    console.log('Creating organization for user:', data.user.id)
+            console.log('✅ Signup successful!')
+            console.log('User ID:', data.user.id)
+            console.log('Organization ID:', data.organization.id)
 
-                    const response = await fetch(
-                        `${API_URL}/api/auth/setup-user-org?user_id=${data.user.id}`,
-                        {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            }
-                        }
-                    )
+            // Show success message
+            setMessage({
+                text: '✅ Account created successfully! Redirecting...',
+                type: 'success'
+            })
 
-                    const orgData = await response.json()
-                    console.log('Organization setup response:', orgData)
+            const { error: loginError } = await supabase.auth.signInWithPassword({
+                email,
+                password,
+            })
 
-                    if (orgData.success) {
-                        setMessage({ text: '✅ Account created! Redirecting...', type: 'success' })
-                        setTimeout(() => router.push('/dashboard'), 1000)
-                    } else {
-                        setMessage({
-                            text: '⚠️ Account created but setup incomplete. Please contact support.',
-                            type: 'error'
-                        })
-                    }
-                } catch (orgError) {
-                    console.error('Error creating organization:', orgError)
-                    setMessage({
-                        text: '⚠️ Account created but setup incomplete. You can still login.',
-                        type: 'error'
-                    })
-                }
-            } else {
-                setMessage({ text: '✅ Account created! Redirecting...', type: 'success' })
-                setTimeout(() => router.push('/dashboard'), 1000)
+            if (loginError) {
+                console.warn('Auto-login failed, user needs to login manually')
+                setMessage({
+                    text: '✅ Account created! Please sign in.',
+                    type: 'success'
+                })
+                setLoading(false)
+                return
             }
-        } catch (err) {
-            console.error('Signup error:', err)
-            setMessage({ text: 'Signup failed. Please try again.', type: 'error' })
+
+            // Redirect to dashboard
+            setTimeout(() => router.push('/dashboard'), 1500)
+
+        } catch (err: any) {
+            console.error('❌ Signup error:', err)
+            const errorMessage = err?.message || 'Signup failed. Please check your connection and try again.'
+            setMessage({
+                text: errorMessage,
+                type: 'error'
+            })
         }
 
         setLoading(false)
@@ -80,45 +106,69 @@ export default function LoginPage() {
         setMessage(null)
 
         try {
+            console.log('🔵 Signing in:', email)
+
             const { data, error } = await supabase.auth.signInWithPassword({
                 email,
                 password,
             })
 
             if (error) {
+                console.error('❌ Login error:', error.message)
                 setMessage({ text: error.message, type: 'error' })
                 setLoading(false)
                 return
             }
 
-            // ✅ NEW: Check if user has organization, create if missing
+            console.log('✅ Login successful!')
+
+            // ✅ Check if user has organization (for old users who signed up before the fix)
             if (data.user) {
                 try {
                     console.log('Checking organization for user:', data.user.id)
 
                     const orgCheck = await fetch(
-                        `${API_URL}/api/user/organization?user_id=${data.user.id}`
+                        `${API_URL}/api/user/organization?user_id=${data.user.id}`,
+                        {
+                            headers: {
+                                'Authorization': `Bearer ${data.session.access_token}`
+                            }
+                        }
                     )
                     const orgData = await orgCheck.json()
 
-                    if (!orgData.success) {
-                        // No org found, create one
-                        console.log('No organization found, creating...')
-                        await fetch(
+                    if (!orgData.success || !orgData.organization_id) {
+                        // No org found, create one (this fixes old users)
+                        console.log('⚠️ No organization found, creating...')
+
+                        const setupResponse = await fetch(
                             `${API_URL}/api/auth/setup-user-org?user_id=${data.user.id}`,
-                            { method: 'POST' }
+                            {
+                                method: 'POST',
+                                headers: {
+                                    'Authorization': `Bearer ${data.session.access_token}`
+                                }
+                            }
                         )
+
+                        const setupData = await setupResponse.json()
+                        console.log('Organization setup:', setupData)
+                    } else {
+                        console.log('✅ User has organization:', orgData.organization_id)
                     }
                 } catch (orgError) {
-                    console.error('Error checking/creating organization:', orgError)
-                    // Continue to dashboard anyway
+                    console.error('⚠️ Error checking/creating organization:', orgError)
+                    // Continue to dashboard anyway - they can fix it later
                 }
             }
 
+            console.log('🚀 Redirecting to dashboard...')
             router.push('/dashboard')
-        } catch (err) {
-            console.error('Login error:', err)
-            setMessage({ text: 'Login failed. Please try again.', type: 'error' })
+
+        } catch (err: any) {
+            console.error('❌ Login error:', err)
+            const errorMessage = err?.message || 'Login failed. Please try again.'
+            setMessage({ text: errorMessage, type: 'error' })
         }
 
         setLoading(false)
@@ -179,6 +229,16 @@ export default function LoginPage() {
                     >
                         {loading ? 'Creating Account...' : 'Sign Up'}
                     </button>
+                </div>
+
+                <div style={{
+                    marginTop: '20px',
+                    fontSize: '12px',
+                    color: '#64748b',
+                    textAlign: 'center'
+                }}>
+                    <p>🔒 Your data is secure and encrypted</p>
+                    <p>Each user gets their own organization automatically</p>
                 </div>
             </div>
         </div>

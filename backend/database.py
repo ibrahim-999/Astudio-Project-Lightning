@@ -1,9 +1,10 @@
-
 from supabase import create_client, Client
-from config import SUPABASE_URL, SUPABASE_KEY
+from config import SUPABASE_URL, SUPABASE_KEY, SUPABASE_SERVICE_ROLE_KEY
 from typing import List, Dict, Any, Optional
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+supabase_admin: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
 
 class DatabaseService:
@@ -33,7 +34,6 @@ class DatabaseService:
     @staticmethod
     def save_analysis(interview_id: str, analysis: Dict[str, Any]):
         """Save interview analysis"""
-        # ✅ Ensure scores are at least 1 (constraint likely requires 1-100)
         analysis_data = {
             "interview_id": interview_id,
             "overall_score": max(1, analysis.get("overall_score", 1)),
@@ -167,33 +167,22 @@ class DatabaseService:
                 }
 
     @staticmethod
-    def get_user_organization(user_id: str) -> str:
-            """Get user's organization_id"""
-            result = supabase.table("user_profiles")\
-            .select("organization_id")\
-            .eq("id", user_id)\
-            .single()\
-            .execute()
-            return result.data["organization_id"]
-
-    def get_user_organization(self, user_id: str) -> str:
-        """
-        Get the organization_id for a user
-        """
+    def get_user_organization(user_id: str) -> Optional[str]:
+        """Get user's organization_id from organization_members"""
         try:
-            response = self.supabase.table("organization_members")\
+            result = supabase.table("organization_members")\
                 .select("organization_id")\
                 .eq("user_id", user_id)\
                 .eq("status", "active")\
-                .limit(1)\
                 .maybe_single()\
                 .execute()
 
-            if response.data:
-                return response.data.get("organization_id")
+            if result.data:
+                return result.data.get("organization_id")
             return None
         except Exception as e:
             print(f"Error getting user organization: {e}")
             return None
+
 
 db = DatabaseService()
