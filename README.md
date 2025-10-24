@@ -20,7 +20,7 @@
 
 ## 🎥 Video Presentation
 
-**[📹 Watch Full Demo]** *(Link to be added)*
+**[📹 Watch Full Demo](https://www.dropbox.com/scl/fi/9uiq6djh3hhpgx47gpfe6/LiveDemo.webm?rlkey=kicd12t1tt6jz12gsoc97o77w&st=i6rru041&dl=0)**
 
 **Quick Demo:**
 1. Login with test account
@@ -345,7 +345,7 @@ npm run dev
 - [x] Test account created
 - [x] Sample data pre-loaded
 - [x] Comprehensive documentation
-- [ ] Video presentation - *In progress*
+- [x] Video presentation - *In progress*
 
 **⚡ Delivered production-ready system in 4 days (5 days allocated)**
 
