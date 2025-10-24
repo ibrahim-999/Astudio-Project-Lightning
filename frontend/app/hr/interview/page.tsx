@@ -59,7 +59,7 @@ export default function InterviewStartPage() {
                         </div>
                     </div>
                     <button onClick={() => router.push('/dashboard')} className="btn-signout">
-                        Back to Dashboard
+                        Back to Ai Chat
                     </button>
                 </div>
             </nav>

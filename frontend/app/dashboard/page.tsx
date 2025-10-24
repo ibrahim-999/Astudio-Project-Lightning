@@ -1,490 +1,427 @@
 'use client'
-import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import '../styles.css'
 
-export default function Dashboard() {
-    const [user, setUser] = useState<any>(null)
-    const [loading, setLoading] = useState(true)
-    const [interviews, setInterviews] = useState<any[]>([])
-    const [projects, setProjects] = useState<any[]>([])
-    const [expenses, setExpenses] = useState<any[]>([])
-    const [expenseSummary, setExpenseSummary] = useState<any>(null)
+interface Message {
+    role: 'user' | 'ai'
+    content: string
+    intent?: any
+    action?: string
+}
+
+export default function UnifiedAIPage() {
+    const [messages, setMessages] = useState<Message[]>([
+        {
+            role: 'ai',
+            content: "👋 Hi! I'm your AI assistant. I can help you with:\n\n• 💰 **Finance** - Add expenses, view budgets\n• 📊 **Projects** - Create projects, manage tasks\n• 👥 **HR** - Conduct interviews, review candidates\n\nJust tell me what you need - type or speak!"
+        }
+    ])
+    const [input, setInput] = useState('')
+    const [loading, setLoading] = useState(false)
+    const [isListening, setIsListening] = useState(false)
+    const [voiceEnabled, setVoiceEnabled] = useState(false)
+    const messagesEndRef = useRef<null | HTMLDivElement>(null)
+    const recognitionRef = useRef<any>(null)
     const router = useRouter()
 
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+    }
+
     useEffect(() => {
-        const checkUser = async () => {
-            const { data: { user } } = await supabase.auth.getUser()
-            if (!user) {
-                router.push('/login')
-            } else {
-                setUser(user)
-                loadDashboardData()
+        scrollToBottom()
+    }, [messages])
+
+    // Initialize Speech Recognition
+    useEffect(() => {
+        if (typeof window !== 'undefined' && 'webkitSpeechRecognition' in window) {
+            const SpeechRecognition = (window as any).webkitSpeechRecognition
+            recognitionRef.current = new SpeechRecognition()
+            recognitionRef.current.continuous = false
+            recognitionRef.current.interimResults = false
+            recognitionRef.current.lang = 'en-US'
+
+            recognitionRef.current.onresult = (event: any) => {
+                const transcript = event.results[0][0].transcript
+                setInput(transcript)
+                setIsListening(false)
             }
+
+            recognitionRef.current.onerror = (event: any) => {
+                console.error('Speech recognition error:', event.error)
+                setIsListening(false)
+            }
+
+            recognitionRef.current.onend = () => {
+                setIsListening(false)
+            }
+        }
+    }, [])
+
+    // Text-to-Speech function
+    const speak = (text: string) => {
+        if (!voiceEnabled) return
+
+        // Cancel any ongoing speech
+        window.speechSynthesis.cancel()
+
+        const utterance = new SpeechSynthesisUtterance(text)
+        utterance.rate = 1.0
+        utterance.pitch = 1.0
+        utterance.volume = 1.0
+
+        window.speechSynthesis.speak(utterance)
+    }
+
+    // Toggle voice listening
+    const toggleListening = () => {
+        if (!recognitionRef.current) {
+            alert('Speech recognition not supported in this browser. Try Chrome or Edge.')
+            return
+        }
+
+        if (isListening) {
+            recognitionRef.current.stop()
+            setIsListening(false)
+        } else {
+            recognitionRef.current.start()
+            setIsListening(true)
+        }
+    }
+
+    const sendMessage = async () => {
+        if (!input.trim() || loading) return
+
+        const userMessage = input.trim()
+        setInput('')
+        setLoading(true)
+
+        // Add user message
+        const newMessages: Message[] = [
+            ...messages,
+            { role: 'user', content: userMessage }
+        ]
+        setMessages(newMessages)
+
+        try {
+            const response = await fetch('http://localhost:8000/api/ai/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    message: userMessage,
+                    organization_id: '00000000-0000-0000-0000-000000000001',
+                    conversation_history: messages.slice(-5).map(m => ({
+                        role: m.role,
+                        content: m.content
+                    }))
+                })
+            })
+
+            const data = await response.json()
+
+            if (data.success) {
+                const aiMessage = {
+                    role: 'ai' as const,
+                    content: data.message,
+                    intent: data.intent,
+                    action: data.action_taken
+                }
+
+                setMessages([...newMessages, aiMessage])
+
+                // Speak the response
+                speak(data.message)
+            } else {
+                const errorMessage = {
+                    role: 'ai' as const,
+                    content: '❌ Sorry, I had trouble with that. Can you try rephrasing?'
+                }
+                setMessages([...newMessages, errorMessage])
+            }
+        } catch (error) {
+            console.error('Error:', error)
+            const errorMessage = {
+                role: 'ai' as const,
+                content: '❌ Connection error. Please try again.'
+            }
+            setMessages([...newMessages, errorMessage])
+        } finally {
             setLoading(false)
         }
-        checkUser()
-    }, [router])
-
-    const loadDashboardData = async () => {
-        const orgId = '00000000-0000-0000-0000-000000000001'
-
-        try {
-            const res = await fetch(`http://localhost:8000/api/interviews?organization_id=${orgId}`)
-            const data = await res.json()
-            if (data.success) {
-                const completedInterviews = data.interviews.filter(
-                    (interview: any) => interview.status === 'completed'
-                )
-                setInterviews(completedInterviews.slice(0, 5))
-            }
-        } catch (error) {
-            console.error('Error loading interviews:', error)
-        }
-
-        try {
-            const res = await fetch(`http://localhost:8000/api/projects?organization_id=${orgId}`)
-            const data = await res.json()
-            if (data.success) {
-                setProjects(data.projects.slice(0, 5)) // Show last 5
-            }
-        } catch (error) {
-            console.error('Error loading projects:', error)
-        }
-
-        // Load expense summary
-        try {
-            const res = await fetch(`http://localhost:8000/api/expenses/summary?organization_id=${orgId}`)
-            const data = await res.json()
-            if (data.success) {
-                setExpenseSummary(data.summary)
-            }
-        } catch (error) {
-            console.error('Error loading expenses:', error)
-        }
     }
 
-    const handleSignOut = async () => {
-        await supabase.auth.signOut()
-        router.push('/login')
-    }
-
-    if (loading) {
-        return (
-            <div style={{
-                minHeight: '100vh',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)'
-            }}>
-                <div style={{ textAlign: 'center' }}>
-                    <div style={{
-                        width: '50px',
-                        height: '50px',
-                        border: '4px solid #e5e7eb',
-                        borderTopColor: '#667eea',
-                        borderRadius: '50%',
-                        animation: 'spin 1s linear infinite',
-                        margin: '0 auto 20px'
-                    }}></div>
-                    <p style={{ color: '#64748b' }}>Loading...</p>
-                </div>
-            </div>
-        )
+    const handleKeyPress = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault()
+            sendMessage()
+        }
     }
 
     return (
-        <div className="dashboard">
-            <nav className="navbar">
-                <div className="navbar-container">
-                    <div className="navbar-brand">
-                        <div className="navbar-logo">⚡</div>
-                        <div className="navbar-text">
-                            <h1>Project Lightning</h1>
-                            <p>AI-Native ERP System</p>
-                        </div>
+        <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#f8fafc' }}>
+            {/* Header */}
+            <div style={{
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                color: 'white',
+                padding: '20px 32px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+            }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                        <h1 style={{ fontSize: '24px', marginBottom: '4px' }}>
+                            🤖 Project Lightning AI
+                        </h1>
+                        <p style={{ opacity: 0.9, fontSize: '14px' }}>
+                            Your AI-Native Assistant {voiceEnabled && '🎤 Voice Active'}
+                        </p>
                     </div>
-
-                    <div className="navbar-user">
-                        <div className="user-email">
-                            <div className="status-dot"></div>
-                            <span>{user?.email}</span>
-                        </div>
-                        <button onClick={handleSignOut} className="btn-signout">
-                            Sign Out
+                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                        {/* Voice Toggle */}
+                        <button
+                            onClick={() => setVoiceEnabled(!voiceEnabled)}
+                            style={{
+                                padding: '10px 20px',
+                                background: voiceEnabled
+                                    ? 'rgba(34, 197, 94, 0.3)'
+                                    : 'rgba(255,255,255,0.2)',
+                                color: 'white',
+                                border: voiceEnabled ? '2px solid #22c55e' : '2px solid transparent',
+                                borderRadius: '8px',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px'
+                            }}
+                        >
+                            🔊 Voice {voiceEnabled ? 'ON' : 'OFF'}
+                        </button>
+                        <button
+                            onClick={() => router.push('/modules')}
+                            style={{
+                                padding: '10px 20px',
+                                background: 'rgba(255,255,255,0.2)',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '8px',
+                                fontWeight: 600,
+                                cursor: 'pointer'
+                            }}
+                        >
+                            📊 Modules
                         </button>
                     </div>
                 </div>
-            </nav>
+            </div>
 
-            <div style={{ display: 'flex', minHeight: 'calc(100vh - 80px)' }}>
-                {/* SIDEBAR */}
-                <div style={{
-                    width: '320px',
-                    background: 'white',
-                    borderRight: '1px solid #e5e7eb',
-                    padding: '24px',
-                    overflowY: 'auto'
-                }}>
-                    <h3 style={{ marginBottom: '20px', fontSize: '18px', fontWeight: 700 }}>
-                        📊 Quick View
-                    </h3>
-
-                    {/* Interviews Section */}
-                    <div style={{ marginBottom: '32px' }}>
-                        <div style={{
+            {/* Messages */}
+            <div style={{
+                flex: 1,
+                overflowY: 'auto',
+                padding: '32px',
+                maxWidth: '900px',
+                width: '100%',
+                margin: '0 auto'
+            }}>
+                {messages.map((msg, index) => (
+                    <div
+                        key={index}
+                        style={{
                             display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            marginBottom: '12px'
+                            justifyContent: msg.role === 'ai' ? 'flex-start' : 'flex-end',
+                            marginBottom: '20px'
+                        }}
+                    >
+                        <div style={{
+                            maxWidth: '70%',
+                            padding: '16px 20px',
+                            borderRadius: '16px',
+                            background: msg.role === 'ai'
+                                ? 'white'
+                                : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                            color: msg.role === 'ai' ? '#1e293b' : 'white',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                            whiteSpace: 'pre-wrap'
                         }}>
-                            <h4 style={{ fontSize: '14px', fontWeight: 600, color: '#64748b' }}>
-                                🧑‍💼 Recent Interviews
-                            </h4>
-                            <button
-                                onClick={() => router.push('/hr/interview')}
-                                style={{
-                                    fontSize: '20px',
-                                    background: 'none',
-                                    border: 'none',
-                                    cursor: 'pointer'
-                                }}
-                            >
-                                +
-                            </button>
-                        </div>
-                        {interviews.length === 0 ? (
-                            <p style={{ fontSize: '13px', color: '#94a3b8' }}>No interviews yet</p>
-                        ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                {interviews.map((interview) => (
-                                    <div
-                                        key={interview.id}
-                                        style={{
-                                            padding: '10px',
-                                            background: '#f8fafc',
-                                            borderRadius: '8px',
-                                            fontSize: '13px',
-                                            cursor: 'pointer'
-                                        }}
-                                        onClick={() => router.push(`/hr/interview/${interview.id}/results`)}
-                                    >
-                                        <div style={{ fontWeight: 600, marginBottom: '4px' }}>
-                                            {interview.candidate_name}
-                                        </div>
-                                        <div style={{ color: '#64748b', fontSize: '12px' }}>
-                                            {interview.position} • {interview.status}
-                                        </div>
-                                    </div>
-                                ))}
+                            <div style={{
+                                fontSize: '11px',
+                                marginBottom: '8px',
+                                opacity: 0.7,
+                                fontWeight: 600,
+                                textTransform: 'uppercase'
+                            }}>
+                                {msg.role === 'ai' ? '🤖 AI Assistant' : '👤 You'}
                             </div>
-                        )}
-                    </div>
-
-                    {/* Projects Section */}
-                    <div style={{ marginBottom: '32px' }}>
-                        <div style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            marginBottom: '12px'
-                        }}>
-                            <h4 style={{ fontSize: '14px', fontWeight: 600, color: '#64748b' }}>
-                                📊 Active Projects
-                            </h4>
-                            <button
-                                onClick={() => router.push('/projects')}
-                                style={{
-                                    fontSize: '20px',
-                                    background: 'none',
-                                    border: 'none',
-                                    cursor: 'pointer'
-                                }}
-                            >
-                                +
-                            </button>
-                        </div>
-                        {projects.length === 0 ? (
-                            <p style={{ fontSize: '13px', color: '#94a3b8' }}>No projects yet</p>
-                        ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                {projects.map((project) => (
-                                    <div
-                                        key={project.id}
-                                        style={{
-                                            padding: '10px',
-                                            background: '#f8fafc',
-                                            borderRadius: '8px',
-                                            fontSize: '13px',
-                                            cursor: 'pointer'
-                                        }}
-                                        onClick={() => router.push(`/projects/${project.id}`)}
-                                    >
-                                        <div style={{ fontWeight: 600, marginBottom: '4px' }}>
-                                            {project.project_name}
-                                        </div>
-                                        <div style={{ color: '#64748b', fontSize: '12px' }}>
-                                            {project.status} • {project.priority}
-                                        </div>
-                                    </div>
-                                ))}
-                                <button
-                                    onClick={() => router.push('/projects/list')}
-                                    style={{
-                                        padding: '8px',
-                                        background: 'none',
-                                        border: '1px solid #e5e7eb',
-                                        borderRadius: '6px',
-                                        fontSize: '12px',
-                                        color: '#667eea',
-                                        cursor: 'pointer',
-                                        fontWeight: 600
-                                    }}
-                                >
-                                    View All Projects →
-                                </button>
+                            <div style={{ fontSize: '15px', lineHeight: '1.6' }}>
+                                {msg.content}
                             </div>
-                        )}
-                    </div>
-
-                    {/* Finance Summary */}
-                    <div>
-                        <div style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            marginBottom: '12px'
-                        }}>
-                            <h4 style={{ fontSize: '14px', fontWeight: 600, color: '#64748b' }}>
-                                💰 Finance Summary
-                            </h4>
-                            <button
-                                onClick={() => router.push('/finance')}
-                                style={{
-                                    fontSize: '20px',
-                                    background: 'none',
-                                    border: 'none',
-                                    cursor: 'pointer'
-                                }}
-                            >
-                                +
-                            </button>
-                        </div>
-                        {!expenseSummary || expenseSummary.total === 0 ? (
-                            <p style={{ fontSize: '13px', color: '#94a3b8' }}>No expenses yet</p>
-                        ) : (
-                            <div>
+                            {msg.intent && (
                                 <div style={{
-                                    padding: '16px',
-                                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                                    borderRadius: '12px',
-                                    color: 'white',
-                                    marginBottom: '12px'
+                                    marginTop: '12px',
+                                    padding: '8px',
+                                    background: 'rgba(0,0,0,0.05)',
+                                    borderRadius: '8px',
+                                    fontSize: '12px'
                                 }}>
-                                    <div style={{ fontSize: '12px', opacity: 0.9 }}>Total Spending</div>
-                                    <div style={{ fontSize: '24px', fontWeight: 'bold' }}>
-                                        ${expenseSummary.total.toFixed(2)}
-                                    </div>
+                                    <strong>Detected:</strong> {msg.intent.module} → {msg.intent.action}
                                 </div>
-                                <div style={{ fontSize: '12px' }}>
-                                    {Object.entries(expenseSummary.by_category).slice(0, 3).map(([cat, amt]: any) => (
-                                        <div
-                                            key={cat}
-                                            style={{
-                                                display: 'flex',
-                                                justifyContent: 'space-between',
-                                                padding: '6px 0',
-                                                borderBottom: '1px solid #f1f5f9'
-                                            }}
-                                        >
-                                            <span style={{ color: '#64748b' }}>{cat}</span>
-                                            <span style={{ fontWeight: 600 }}>${amt.toFixed(2)}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                                <button
-                                    onClick={() => router.push('/finance/list')}
-                                    style={{
-                                        width: '100%',
-                                        marginTop: '12px',
-                                        padding: '8px',
-                                        background: 'none',
-                                        border: '1px solid #e5e7eb',
-                                        borderRadius: '6px',
-                                        fontSize: '12px',
-                                        color: '#667eea',
-                                        cursor: 'pointer',
-                                        fontWeight: 600
-                                    }}
-                                >
-                                    View All Expenses →
-                                </button>
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </div>
-                </div>
+                ))}
 
-                {/* MAIN CONTENT */}
-                <div style={{ flex: 1, overflowY: 'auto' }}>
-                    <div className="container">
-                        <div className="hero">
-                            <div className="badge">✅ Day 3 Complete - All Modules Active</div>
-                            <h2>Welcome to Your AI-Native ERP</h2>
-                            <p>Built in 4 days. Powered by AI. Ready to transform creative agencies.</p>
-                        </div>
-
-                        <div className="modules-grid">
-                            <div className="module-card active">
-                                <div className="module-icon">🧑‍💼</div>
-                                <div className="module-badge next">Active</div>
-                                <h3>HR Module</h3>
-                                <p>AI Interviewer conducts conversations, analyzes responses, and generates hiring insights automatically.</p>
-                                <ul className="module-features">
-                                    <li>AI-powered interview conductor</li>
-                                    <li>Smart onboarding workflows</li>
-                                    <li>Intelligent task assignment</li>
-                                </ul>
-                                <button
-                                    onClick={() => router.push('/hr/interview')}
-                                    style={{
-                                        width: '100%',
-                                        padding: '16px',
-                                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                                        color: 'white',
-                                        border: 'none',
-                                        borderRadius: '12px',
-                                        fontSize: '16px',
-                                        fontWeight: 600,
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    Start Interview 🚀
-                                </button>
-                            </div>
-
-                            <div className="module-card active">
-                                <div className="module-icon">📊</div>
-                                <div className="module-badge next">Active</div>
-                                <h3>Projects</h3>
-                                <p>AI Project Coordinator creates plans, assigns teams, predicts timelines, and prevents delays.</p>
-                                <ul className="module-features">
-                                    <li>Natural language project creation</li>
-                                    <li>AI-powered team matching</li>
-                                    <li>Timeline prediction & risk alerts</li>
-                                </ul>
-                                <button
-                                    onClick={() => router.push('/projects')}
-                                    style={{
-                                        width: '100%',
-                                        padding: '16px',
-                                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                                        color: 'white',
-                                        border: 'none',
-                                        borderRadius: '12px',
-                                        fontSize: '16px',
-                                        fontWeight: 600,
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    Create Project 🚀
-                                </button>
-                            </div>
-
-                            <div className="module-card active">
-                                <div className="module-icon">💰</div>
-                                <div className="module-badge next">Active</div>
-                                <h3>Finance</h3>
-                                <p>AI Accountant categorizes expenses, predicts cash flow, and alerts about budget risks.</p>
-                                <ul className="module-features">
-                                    <li>Automatic expense categorization</li>
-                                    <li>Cash flow predictions</li>
-                                    <li>Smart financial alerts</li>
-                                </ul>
-                                <button
-                                    onClick={() => router.push('/finance')}
-                                    style={{
-                                        width: '100%',
-                                        padding: '16px',
-                                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                                        color: 'white',
-                                        border: 'none',
-                                        borderRadius: '12px',
-                                        fontSize: '16px',
-                                        fontWeight: 600,
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    Add Expense 💰
-                                </button>
-                            </div>
-                            <div className="module-card active">
-                                <div className="module-icon">🤖</div>
-                                <div className="module-badge next">Active</div>
-                                <h3>AI Assistant</h3>
-                                <p>Unified AI chat interface. Talk naturally to manage expenses, projects, and HR - all in one conversation.</p>
-                                <ul className="module-features">
-                                    <li>Natural language commands</li>
-                                    <li>Cross-module intelligence</li>
-                                    <li>Proactive AI suggestions</li>
-                                </ul>
-                                <button
-                                    onClick={() => router.push('/ai')}
-                                    style={{
-                                        width: '100%',
-                                        padding: '16px',
-                                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                                        color: 'white',
-                                        border: 'none',
-                                        borderRadius: '12px',
-                                        fontSize: '16px',
-                                        fontWeight: 600,
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    Open AI Chat 💬
-                                </button>
-                            </div>
-                        </div>
-
-                        <div className="info-grid">
-                            <div className="info-card">
-                                <h3>✅ Day 3 Complete!</h3>
-                                <ul className="checklist">
-                                    <li>HR Module with AI Interviewer</li>
-                                    <li>Projects with AI task generation</li>
-                                    <li>Finance with AI categorization</li>
-                                    <li>All modules interconnected</li>
-                                    <li>User logged in: {user?.email}</li>
-                                </ul>
-                            </div>
-
-                            <div className="info-card next-steps-card">
-                                <h3>🎉 All 3 Modules Complete!</h3>
-                                <p style={{ marginBottom: '20px', opacity: 0.9 }}>
-                                    HR, Projects, and Finance modules are fully functional with AI!
-                                </p>
-                                <ul className="next-steps-list">
-                                    <li>AI Interview Conductor with analysis</li>
-                                    <li>Natural language project creation</li>
-                                    <li>AI expense categorization</li>
-                                    <li>Real-time data across all modules</li>
-                                </ul>
+                {loading && (
+                    <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '20px' }}>
+                        <div style={{
+                            padding: '16px 20px',
+                            borderRadius: '16px',
+                            background: 'white',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                        }}>
+                            <div style={{ fontSize: '15px' }}>
+                                <span className="typing-indicator">●●●</span> AI is thinking...
                             </div>
                         </div>
                     </div>
+                )}
 
-                    <div className="footer">
-                        <p>Project Lightning Assessment</p>
-                        <p>⚡ Speed × 🤖 Intelligence × 🎯 Precision</p>
+                <div ref={messagesEndRef} />
+            </div>
+
+            {/* Input */}
+            <div style={{
+                background: 'white',
+                borderTop: '1px solid #e5e7eb',
+                padding: '24px 32px',
+                boxShadow: '0 -2px 8px rgba(0,0,0,0.05)'
+            }}>
+                <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+                    {/* Listening Indicator */}
+                    {isListening && (
+                        <div style={{
+                            marginBottom: '16px',
+                            padding: '16px',
+                            background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+                            borderRadius: '12px',
+                            border: '2px solid #22c55e',
+                            textAlign: 'center',
+                            animation: 'pulse 1.5s ease-in-out infinite'
+                        }}>
+                            <div style={{ fontSize: '24px', marginBottom: '8px' }}>🎤</div>
+                            <div style={{ fontWeight: 600, color: '#15803d' }}>
+                                Listening... Speak now!
+                            </div>
+                        </div>
+                    )}
+
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                        {/* Voice Button */}
+                        <button
+                            onClick={toggleListening}
+                            disabled={loading}
+                            style={{
+                                padding: '16px',
+                                background: isListening
+                                    ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
+                                    : '#f1f5f9',
+                                color: isListening ? 'white' : '#64748b',
+                                border: 'none',
+                                borderRadius: '12px',
+                                fontSize: '24px',
+                                cursor: loading ? 'not-allowed' : 'pointer',
+                                transition: 'all 0.3s',
+                                minWidth: '56px'
+                            }}
+                            title={isListening ? 'Stop listening' : 'Start voice input'}
+                        >
+                            {isListening ? '🔴' : '🎤'}
+                        </button>
+
+                        {/* Text Input */}
+                        <input
+                            type="text"
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            onKeyPress={handleKeyPress}
+                            placeholder="Type or click 🎤 to speak..."
+                            disabled={loading || isListening}
+                            style={{
+                                flex: 1,
+                                padding: '16px',
+                                border: '2px solid #e5e7eb',
+                                borderRadius: '12px',
+                                fontSize: '15px',
+                                fontFamily: 'inherit'
+                            }}
+                        />
+
+                        {/* Send Button */}
+                        <button
+                            onClick={sendMessage}
+                            disabled={loading || !input.trim() || isListening}
+                            style={{
+                                padding: '16px 32px',
+                                background: loading || !input.trim() || isListening
+                                    ? '#e5e7eb'
+                                    : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                color: loading || !input.trim() || isListening ? '#9ca3af' : 'white',
+                                border: 'none',
+                                borderRadius: '12px',
+                                fontSize: '16px',
+                                fontWeight: 600,
+                                cursor: loading || !input.trim() || isListening ? 'not-allowed' : 'pointer'
+                            }}
+                        >
+                            {loading ? 'Sending...' : 'Send ➤'}
+                        </button>
+                    </div>
+
+                    {/* Quick Examples */}
+                    <div style={{
+                        marginTop: '16px',
+                        display: 'flex',
+                        gap: '8px',
+                        flexWrap: 'wrap'
+                    }}>
+                        <div style={{ fontSize: '13px', color: '#64748b', marginRight: '8px' }}>
+                            Try saying:
+                        </div>
+                        {[
+                            'Add expense lunch 25 dollars',
+                            'Create project for mobile app',
+                            'Show my expenses'
+                        ].map((example, i) => (
+                            <button
+                                key={i}
+                                onClick={() => setInput(example)}
+                                style={{
+                                    padding: '6px 12px',
+                                    background: '#f1f5f9',
+                                    border: '1px solid #e5e7eb',
+                                    borderRadius: '8px',
+                                    fontSize: '12px',
+                                    cursor: 'pointer',
+                                    color: '#64748b'
+                                }}
+                            >
+                                "{example}"
+                            </button>
+                        ))}
                     </div>
                 </div>
             </div>
 
             <style jsx>{`
-                @keyframes spin {
-                    to { transform: rotate(360deg); }
+                .typing-indicator {
+                    animation: blink 1.4s infinite;
+                }
+                @keyframes blink {
+                    0%, 100% { opacity: 0.2; }
+                    50% { opacity: 1; }
+                }
+                @keyframes pulse {
+                    0%, 100% { transform: scale(1); opacity: 1; }
+                    50% { transform: scale(1.02); opacity: 0.9; }
                 }
             `}</style>
         </div>
