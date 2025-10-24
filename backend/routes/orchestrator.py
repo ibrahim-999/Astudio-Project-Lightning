@@ -11,7 +11,7 @@ router = APIRouter(prefix="/api/ai", tags=["orchestrator"])
 
 class ChatRequest(BaseModel):
     message: str
-    organization_id: str = "00000000-0000-0000-0000-000000000001"
+    organization_id: Optional[str] = None
     conversation_history: Optional[List[Dict]] = []
 
 
@@ -29,6 +29,12 @@ async def unified_chat(request: ChatRequest):
     Unified AI chat interface - handles all natural language commands
     """
     try:
+        if not request.organization_id:
+            raise HTTPException(
+                status_code=400,
+                detail="organization_id is required"
+            )
+
         result = await UnifiedOrchestrator.process_command(
             request.message,
             request.organization_id,
