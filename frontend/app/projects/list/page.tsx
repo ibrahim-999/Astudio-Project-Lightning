@@ -2,20 +2,53 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import '../../styles.css'
-import { API_URL } from '@/lib/supabase'
+import { supabase, API_URL } from '@/lib/supabase'
+
 
 export default function ProjectListPage() {
     const [projects, setProjects] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const router = useRouter()
+    const [session, setSession] = useState(null)
+    const [organizationId, setOrganizationId] = useState('') // 
 
     useEffect(() => {
-        loadProjects()
+        const initData = async () => {
+            const { data: { session } } = await supabase.auth.getSession()
+            setSession(session)
+
+            if (!session) {
+                router.push('/login')
+            } else {
+                try {
+                    const orgRes = await fetch(`${API_URL}/api/user/organization?user_id=${session.user.id}`)
+                    const orgData = await orgRes.json()
+                    if (orgData.success && orgData.organization_id) {
+                        setOrganizationId(orgData.organization_id)
+                    }
+                } catch (error) {
+                    console.error('Error fetching org:', error)
+                }
+            }
+        }
+        initData()
     }, [])
 
-    const loadProjects = async () => {
+    useEffect(() => {
+        if (session && organizationId) {
+            loadProjects(session.access_token)
+        }
+    }, [organizationId, session])
+
+    const loadProjects = async (token: string) => {
+        if (!organizationId) return  // ✅ Don't load if no org ID yet
+
         try {
-            const response = await fetch(`${API_URL}/api/projects?organization_id=00000000-0000-0000-0000-000000000001`)
+            const response = await fetch(`${API_URL}/api/projects?organization_id=${organizationId}`, {  // ✅ ADD QUERY PARAM
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
             const data = await response.json()
 
             if (data.success) {
@@ -27,7 +60,6 @@ export default function ProjectListPage() {
             setLoading(false)
         }
     }
-
     const getStatusColor = (status: string) => {
         switch (status) {
             case 'active': return '#10b981'

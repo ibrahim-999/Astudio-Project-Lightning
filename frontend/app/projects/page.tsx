@@ -1,19 +1,54 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import '../styles.css'
-import { API_URL } from '@/lib/supabase'
-
+import { API_URL, supabase } from '@/lib/supabase'
 
 export default function CreateProjectPage() {
     const [brief, setBrief] = useState('')
     const [clientName, setClientName] = useState('')
     const [loading, setLoading] = useState(false)
+    const [session, setSession] = useState(null)
+    const [organizationId, setOrganizationId] = useState('')
     const router = useRouter()
+
+    useEffect(() => {
+        const initData = async () => {
+            const { data: { session } } = await supabase.auth.getSession()
+            setSession(session)
+
+            if (!session) {
+                router.push('/login')
+            } else {
+                // ✅ Fetch organization ID
+                try {
+                    const orgRes = await fetch(`${API_URL}/api/user/organization?user_id=${session.user.id}`)
+                    const orgData = await orgRes.json()
+                    if (orgData.success && orgData.organization_id) {
+                        setOrganizationId(orgData.organization_id)
+                    }
+                } catch (error) {
+                    console.error('Error fetching org:', error)
+                }
+            }
+        }
+        initData()
+    }, [])
 
     const createProject = async () => {
         if (!brief.trim()) {
             alert('Please enter a project brief')
+            return
+        }
+
+        if (!session) {
+            alert('Please login first')
+            router.push('/login')
+            return
+        }
+
+        if (!organizationId) {
+            alert('Loading organization... please wait')
             return
         }
 
@@ -22,11 +57,14 @@ export default function CreateProjectPage() {
         try {
             const response = await fetch(`${API_URL}/api/project/create`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`
+                },
                 body: JSON.stringify({
+                    organization_id: organizationId,
                     brief,
-                    client_name: clientName || null,
-                    organization_id: '00000000-0000-0000-0000-000000000001'
+                    client_name: clientName || null
                 })
             })
 
@@ -44,6 +82,7 @@ export default function CreateProjectPage() {
             setLoading(false)
         }
     }
+
 
     return (
         <div className="dashboard">
@@ -118,22 +157,22 @@ export default function CreateProjectPage() {
 
                         <button
                             onClick={createProject}
-                            disabled={loading || !brief.trim()}
+                            disabled={loading || !brief.trim() || !organizationId}
                             style={{
                                 width: '100%',
                                 padding: '16px',
-                                background: loading || !brief.trim()
+                                background: loading || !brief.trim() || !organizationId
                                     ? '#e5e7eb'
                                     : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                                color: loading || !brief.trim() ? '#9ca3af' : 'white',
+                                color: loading || !brief.trim() || !organizationId ? '#9ca3af' : 'white',
                                 border: 'none',
                                 borderRadius: '12px',
                                 fontSize: '16px',
                                 fontWeight: 600,
-                                cursor: loading || !brief.trim() ? 'not-allowed' : 'pointer'
+                                cursor: loading || !brief.trim() || !organizationId ? 'not-allowed' : 'pointer'
                             }}
                         >
-                            {loading ? 'AI is Planning...' : 'Create Project with AI 🚀'}
+                            {loading ? 'AI is Planning...' : !organizationId ? 'Loading...' : 'Create Project with AI 🚀'}
                         </button>
                     </div>
 

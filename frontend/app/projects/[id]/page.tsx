@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import '../../styles.css'
-import { API_URL } from '@/lib/supabase'
+import { API_URL, supabase } from '@/lib/supabase'  
 
 
 export default function ProjectDetailsPage() {
@@ -12,14 +12,45 @@ export default function ProjectDetailsPage() {
 
     const [tasks, setTasks] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
+    const [session, setSession] = useState(null)  
+    const [organizationId, setOrganizationId] = useState('')  
 
     useEffect(() => {
-        loadTasks()
-    }, [projectId])
+        const initData = async () => {
+            const { data: { session } } = await supabase.auth.getSession()
+            setSession(session)
 
+            if (!session) {
+                router.push('/login')
+            } else {
+                try {
+                    const orgRes = await fetch(`${API_URL}/api/user/organization?user_id=${session.user.id}`)
+                    const orgData = await orgRes.json()
+                    if (orgData.success && orgData.organization_id) {
+                        setOrganizationId(orgData.organization_id)
+                    }
+                } catch (error) {
+                    console.error('Error fetching org:', error)
+                }
+            }
+        }
+        initData()
+    }, [])
+
+    useEffect(() => {
+        if (session) {   CHECK
+            loadTasks()
+        }
+    }, [projectId, session])
     const loadTasks = async () => {
+        if (!session) return   CHECK
+
         try {
-            const response = await fetch(`${API_URL}/api/project/${projectId}/tasks`)
+            const response = await fetch(`${API_URL}/api/project/${projectId}/tasks`, {
+                headers: {
+                    'Authorization': `Bearer ${session.access_token}`  
+                }
+            })
             const data = await response.json()
 
             if (data.success) {
@@ -31,12 +62,16 @@ export default function ProjectDetailsPage() {
             setLoading(false)
         }
     }
-
     const updateTaskStatus = async (taskId: string, newStatus: string) => {
+        if (!session) return   CHECK
+
         try {
             await fetch(`${API_URL}/api/task/update`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`  
+                },
                 body: JSON.stringify({
                     task_id: taskId,
                     status: newStatus
@@ -47,7 +82,6 @@ export default function ProjectDetailsPage() {
             console.error('Error updating task:', error)
         }
     }
-
     const getStatusColor = (status: string) => {
         switch (status) {
             case 'done': return '#10b981'

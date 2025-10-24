@@ -47,7 +47,7 @@ export default function AddExpensePage() {
             return
         }
 
-        if (!organizationId) {  // ✅ ADD THIS CHECK
+        if (!organizationId) {  //  CHECK
             setError('Loading organization... please wait')
             return
         }
