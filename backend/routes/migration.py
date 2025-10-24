@@ -1,5 +1,5 @@
 """Migration API endpoints"""
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, HTTPException, Form
 from migration_service import MigrationService
 from project_service import FinanceAssistant
 from database import db
@@ -9,7 +9,10 @@ router = APIRouter(prefix="/api/migration", tags=["migration"])
 
 
 @router.post("/analyze-csv")
-async def analyze_csv(file: UploadFile = File(...)):
+async def analyze_csv(
+    file: UploadFile = File(...),
+    organization_id: str = Form(...)  #
+):
     """Analyze CSV structure"""
     try:
         content = await file.read()
@@ -23,7 +26,7 @@ async def analyze_csv(file: UploadFile = File(...)):
 @router.post("/import-expenses")
 async def import_expenses(
     file: UploadFile = File(...),
-    organization_id: str = "00000000-0000-0000-0000-000000000001"
+    organization_id: str = Form(...)  #
 ):
     try:
         content = await file.read()
@@ -58,6 +61,7 @@ async def import_expenses(
                 imported_count += 1
 
             except Exception as e:
+                print(f"Error importing expense: {e}")
                 continue
 
         return {
@@ -67,12 +71,3 @@ async def import_expenses(
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.get("/demo")
-async def demo_migration():
-    """Demo endpoint"""
-    return {
-        "success": True,
-        "demo": "Migration Active"
-    }
