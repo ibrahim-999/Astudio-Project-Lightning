@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'  // ✅ Add useRef here
 import { useRouter, useParams } from 'next/navigation'
 import '../../../styles.css'
 
@@ -22,7 +22,16 @@ export default function InterviewChatPage() {
     const [totalQuestions] = useState(8)
     const [analyzing, setAnalyzing] = useState(false)
 
-    // Load interview on mount
+    const messagesEndRef = useRef<null | HTMLDivElement>(null)
+
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+    }
+
+    useEffect(() => {
+        scrollToBottom()
+    }, [messages, loading])
+
     useEffect(() => {
         loadInterview()
     }, [interviewId])
@@ -265,6 +274,8 @@ export default function InterviewChatPage() {
                             </div>
                         </div>
                     )}
+
+                    <div ref={messagesEndRef} />
                 </div>
 
                 {/* Input Area */}
@@ -275,24 +286,24 @@ export default function InterviewChatPage() {
                         padding: '20px',
                         boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
                     }}>
-            <textarea
-                value={currentResponse}
-                onChange={(e) => setCurrentResponse(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Type your response... (Press Enter to send)"
-                disabled={loading}
-                style={{
-                    width: '100%',
-                    minHeight: '100px',
-                    padding: '16px',
-                    border: '2px solid #e5e7eb',
-                    borderRadius: '12px',
-                    fontSize: '15px',
-                    fontFamily: 'inherit',
-                    resize: 'vertical',
-                    marginBottom: '16px'
-                }}
-            />
+                        <textarea
+                            value={currentResponse}
+                            onChange={(e) => setCurrentResponse(e.target.value)}
+                            onKeyPress={handleKeyPress}
+                            placeholder="Type your response... (Press Enter to send)"
+                            disabled={loading}
+                            style={{
+                                width: '100%',
+                                minHeight: '100px',
+                                padding: '16px',
+                                border: '2px solid #e5e7eb',
+                                borderRadius: '12px',
+                                fontSize: '15px',
+                                fontFamily: 'inherit',
+                                resize: 'vertical',
+                                marginBottom: '16px'
+                            }}
+                        />
                         <button
                             onClick={sendResponse}
                             disabled={loading || !currentResponse.trim()}
