@@ -1,8 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from config import API_TITLE, API_DESCRIPTION, API_VERSION, CORS_ORIGINS, SUPABASE_URL
-from routes import interview, health, project, finance, migration, orchestrator
+from config import API_TITLE, API_DESCRIPTION, API_VERSION, SUPABASE_URL
 
 app = FastAPI(
     title=API_TITLE,
@@ -12,13 +11,13 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=CORS_ORIGINS,
+    allow_origin_regex=r"https://.*\.vercel\.app$|http://localhost:3000",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Include routers
+from routes import interview, health, project, finance, migration, orchestrator
 app.include_router(health.router)
 app.include_router(interview.router)
 app.include_router(project.router)
@@ -28,7 +27,6 @@ app.include_router(orchestrator.router)
 
 @app.on_event("startup")
 async def startup_event():
-    """Initialize services on startup"""
     print("🚀 Starting Project Lightning AI Service...")
     print(f"📡 Connected to Supabase: {SUPABASE_URL}")
     print("🤖 AI Interview Conductor: Ready")
@@ -37,7 +35,6 @@ async def startup_event():
 
 @app.on_event("shutdown")
 async def shutdown_event():
-    """Cleanup on shutdown"""
     print("👋 Shutting down AI Service...")
 
 
