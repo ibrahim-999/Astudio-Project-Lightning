@@ -2,6 +2,8 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import '../../../../styles.css'
+import { API_URL } from '@/lib/supabase'
+
 
 interface Analysis {
     overall_score: number
@@ -30,7 +32,7 @@ export default function InterviewResultsPage() {
 
     const loadResults = async () => {
         try {
-            const response = await fetch(`http://localhost:8000/api/interview/${interviewId}`)
+            const response = await fetch(`${API_URL}/api/interview/${interviewId}`)
             const data = await response.json()
 
             if (data.success) {

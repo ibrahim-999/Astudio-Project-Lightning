@@ -2,6 +2,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import '../styles.css'
+import { API_URL } from '@/lib/supabase'
+
 
 export default function CreateProjectPage() {
     const [brief, setBrief] = useState('')
@@ -18,7 +20,7 @@ export default function CreateProjectPage() {
         setLoading(true)
 
         try {
-            const response = await fetch('http://localhost:8000/api/project/create', {
+            const response = await fetch(`${API_URL}/api/project/create`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

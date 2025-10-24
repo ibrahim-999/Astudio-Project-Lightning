@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import toast, { Toaster } from 'react-hot-toast'
 import '../styles.css'
+import { API_URL } from '@/lib/supabase'
 
 export default function AddExpensePage() {
     const [description, setDescription] = useState('')
@@ -22,7 +23,7 @@ export default function AddExpensePage() {
         setLoading(true)
 
         try {
-            const response = await fetch('http://localhost:8000/api/expense/create', {
+            const response = await fetch(`${API_URL}/api/expense/create`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

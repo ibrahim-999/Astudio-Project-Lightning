@@ -2,6 +2,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import '../../styles.css'
+import { API_URL } from '@/lib/supabase'
+
 
 export default function InterviewStartPage() {
     const [candidateName, setCandidateName] = useState('')
@@ -21,7 +23,7 @@ export default function InterviewStartPage() {
         setError('')
 
         try {
-            const response = await fetch('http://localhost:8000/api/interview/start', {
+            const response = await fetch(`${API_URL}/api/interview/start`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

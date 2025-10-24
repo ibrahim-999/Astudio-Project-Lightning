@@ -2,6 +2,8 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import '../../styles.css'
+import { API_URL } from '@/lib/supabase'
+
 
 export default function ProjectDetailsPage() {
     const params = useParams()
@@ -17,7 +19,7 @@ export default function ProjectDetailsPage() {
 
     const loadTasks = async () => {
         try {
-            const response = await fetch(`http://localhost:8000/api/project/${projectId}/tasks`)
+            const response = await fetch(`${API_URL}/api/project/${projectId}/tasks`)
             const data = await response.json()
 
             if (data.success) {
@@ -32,7 +34,7 @@ export default function ProjectDetailsPage() {
 
     const updateTaskStatus = async (taskId: string, newStatus: string) => {
         try {
-            await fetch('http://localhost:8000/api/task/update', {
+            await fetch(`${API_URL}/api/task/update`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

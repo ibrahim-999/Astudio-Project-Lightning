@@ -1,6 +1,8 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { API_URL } from '@/lib/supabase'
+
 
 export default function MigrationPage() {
     const [file, setFile] = useState<File | null>(null)
@@ -38,8 +40,7 @@ export default function MigrationPage() {
         formData.append('file', file)
 
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
-            const response = await fetch(`${apiUrl}/api/migration/analyze-csv`, {
+            const response = await fetch(`${API_URL}/api/migration/analyze-csv`, {
                 method: 'POST',
                 body: formData
             })
@@ -60,8 +61,7 @@ export default function MigrationPage() {
         formData.append('file', file)
 
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
-            const response = await fetch(`${apiUrl}/api/migration/import-expenses`, {
+            const response = await fetch(`${API_URL}/api/migration/import-expenses`, {
                 method: 'POST',
                 body: formData
             })

@@ -1,7 +1,9 @@
 'use client'
-import { useEffect, useState, useRef } from 'react'  // ✅ Add useRef here
+import { useEffect, useState, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import '../../../styles.css'
+import { API_URL } from '@/lib/supabase'
+
 
 interface Message {
     speaker: 'ai' | 'candidate'
@@ -38,7 +40,7 @@ export default function InterviewChatPage() {
 
     const loadInterview = async () => {
         try {
-            const response = await fetch(`http://localhost:8000/api/interview/${interviewId}`)
+            const response = await fetch(`${API_URL}/api/interview/${interviewId}`)
             const data = await response.json()
 
             if (data.success && data.transcripts) {

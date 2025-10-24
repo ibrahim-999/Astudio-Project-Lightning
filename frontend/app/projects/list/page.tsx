@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import '../../styles.css'
+import { API_URL } from '@/lib/supabase'
 
 export default function ProjectListPage() {
     const [projects, setProjects] = useState<any[]>([])
@@ -14,7 +15,7 @@ export default function ProjectListPage() {
 
     const loadProjects = async () => {
         try {
-            const response = await fetch('http://localhost:8000/api/projects?organization_id=00000000-0000-0000-0000-000000000001')
+            const response = await fetch(`${API_URL}/api/projects?organization_id=00000000-0000-0000-0000-000000000001`)
             const data = await response.json()
 
             if (data.success) {

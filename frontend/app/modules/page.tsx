@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import '../styles.css'
+import { API_URL } from '@/lib/supabase'
+
 
 export default function Dashboard() {
     const [user, setUser] = useState<any>(null)
@@ -31,7 +33,7 @@ export default function Dashboard() {
         const orgId = '00000000-0000-0000-0000-000000000001'
 
         try {
-            const res = await fetch(`http://localhost:8000/api/interviews?organization_id=${orgId}`)
+            const res = await fetch(`${API_URL}/api/interviews?organization_id=${orgId}`)
             const data = await res.json()
             if (data.success) {
                 const completedInterviews = data.interviews.filter(
@@ -44,10 +46,10 @@ export default function Dashboard() {
         }
 
         try {
-            const res = await fetch(`http://localhost:8000/api/projects?organization_id=${orgId}`)
+            const res = await fetch(`${API_URL}/api/projects?organization_id=${orgId}`)
             const data = await res.json()
             if (data.success) {
-                setProjects(data.projects.slice(0, 5)) // Show last 5
+                setProjects(data.projects.slice(0, 5))
             }
         } catch (error) {
             console.error('Error loading projects:', error)
@@ -55,7 +57,7 @@ export default function Dashboard() {
 
         // Load expense summary
         try {
-            const res = await fetch(`http://localhost:8000/api/expenses/summary?organization_id=${orgId}`)
+            const res = await fetch(`${API_URL}/api/expenses/summary?organization_id=${orgId}`)
             const data = await res.json()
             if (data.success) {
                 setExpenseSummary(data.summary)

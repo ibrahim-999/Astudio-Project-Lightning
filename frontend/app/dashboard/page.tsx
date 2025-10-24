@@ -1,6 +1,8 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { supabase, API_URL } from '@/lib/supabase'
+
 
 interface Message {
     role: 'user' | 'ai'
@@ -104,7 +106,7 @@ export default function UnifiedAIPage() {
         setMessages(newMessages)
 
         try {
-            const response = await fetch('http://localhost:8000/api/ai/chat', {
+            const response = await fetch(`${API_URL}/api/ai/chat`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import toast, { Toaster } from 'react-hot-toast'
 import '../../styles.css'
+import { API_URL } from '@/lib/supabase'
+
 
 export default function ExpenseListPage() {
     const [expenses, setExpenses] = useState<any[]>([])
@@ -17,7 +19,7 @@ export default function ExpenseListPage() {
 
     const loadExpenses = async () => {
         try {
-            const response = await fetch('http://localhost:8000/api/expenses?organization_id=00000000-0000-0000-0000-000000000001')
+            const response = await fetch(`${API_URL}/api/expenses?organization_id=00000000-0000-0000-0000-000000000001`)
             const data = await response.json()
 
             if (data.success) {
@@ -35,7 +37,7 @@ export default function ExpenseListPage() {
 
     const loadSummary = async () => {
         try {
-            const response = await fetch('http://localhost:8000/api/expenses/summary?organization_id=00000000-0000-0000-0000-000000000001')
+            const response = await fetch(`${API_URL}/api/expenses/summary?organization_id=00000000-0000-0000-0000-000000000001`)
             const data = await response.json()
 
             if (data.success) {

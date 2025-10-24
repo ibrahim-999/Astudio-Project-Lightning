@@ -3,6 +3,8 @@ import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import '../styles.css'
+import { API_URL } from '@/lib/supabase'
+
 
 
 export default function LoginPage() {
