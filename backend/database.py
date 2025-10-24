@@ -165,4 +165,14 @@ class DatabaseService:
                     "total": total
                 }
 
+    @staticmethod
+    def get_user_organization(user_id: str) -> str:
+            """Get user's organization_id"""
+            result = supabase.table("user_profiles")\
+            .select("organization_id")\
+            .eq("id", user_id)\
+            .single()\
+            .execute()
+            return result.data["organization_id"]
+
 db = DatabaseService()
