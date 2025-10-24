@@ -3,7 +3,6 @@ import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase, API_URL } from '@/lib/supabase'
 
-
 interface Message {
     role: 'user' | 'ai'
     content: string
@@ -22,8 +21,10 @@ export default function UnifiedAIPage() {
     const [loading, setLoading] = useState(false)
     const [isListening, setIsListening] = useState(false)
     const [voiceEnabled, setVoiceEnabled] = useState(false)
+    const [session, setSession] = useState(null) // Add session state
     const messagesEndRef = useRef<null | HTMLDivElement>(null)
     const recognitionRef = useRef<any>(null)
+    const [organizationId, setOrganizationId] = useState('')
     const router = useRouter()
 
     const scrollToBottom = () => {
@@ -31,33 +32,26 @@ export default function UnifiedAIPage() {
     }
 
     useEffect(() => {
-        scrollToBottom()
-    }, [messages])
+        const initData = async () => {
+            const { data: { session } } = await supabase.auth.getSession()
+            setSession(session)
 
-    // Initialize Speech Recognition
-    useEffect(() => {
-        if (typeof window !== 'undefined' && 'webkitSpeechRecognition' in window) {
-            const SpeechRecognition = (window as any).webkitSpeechRecognition
-            recognitionRef.current = new SpeechRecognition()
-            recognitionRef.current.continuous = false
-            recognitionRef.current.interimResults = false
-            recognitionRef.current.lang = 'en-US'
-
-            recognitionRef.current.onresult = (event: any) => {
-                const transcript = event.results[0][0].transcript
-                setInput(transcript)
-                setIsListening(false)
-            }
-
-            recognitionRef.current.onerror = (event: any) => {
-                console.error('Speech recognition error:', event.error)
-                setIsListening(false)
-            }
-
-            recognitionRef.current.onend = () => {
-                setIsListening(false)
+            if (!session) {
+                router.push('/login')
+            } else {
+                // Fetch organization ID
+                try {
+                    const orgRes = await fetch(`${API_URL}/api/user/organization?user_id=${session.user.id}`)
+                    const orgData = await orgRes.json()
+                    if (orgData.success && orgData.organization_id) {
+                        setOrganizationId(orgData.organization_id)
+                    }
+                } catch (error) {
+                    console.error('Error fetching org:', error)
+                }
             }
         }
+        initData()
     }, [])
 
     // Text-to-Speech function
@@ -94,6 +88,16 @@ export default function UnifiedAIPage() {
     const sendMessage = async () => {
         if (!input.trim() || loading) return
 
+        if (!session) { // Check session
+            const errorMessage = {
+                role: 'ai' as const,
+                content: '❌ Please login first'
+            }
+            setMessages([...messages, errorMessage])
+            router.push('/login')
+            return
+        }
+
         const userMessage = input.trim()
         setInput('')
         setLoading(true)
@@ -108,10 +112,13 @@ export default function UnifiedAIPage() {
         try {
             const response = await fetch(`${API_URL}/api/ai/chat`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}` // Add JWT
+                },
                 body: JSON.stringify({
                     message: userMessage,
-                    organization_id: '00000000-0000-0000-0000-000000000001',
+                    organization_id: organizationId,  //  LINE
                     conversation_history: messages.slice(-5).map(m => ({
                         role: m.role,
                         content: m.content

@@ -8,6 +8,8 @@ import { API_URL } from '@/lib/supabase'
 
 export default function Dashboard() {
     const [user, setUser] = useState<any>(null)
+    const [session, setSession] = useState<any>(null)
+    const [organizationId, setOrganizationId] = useState<string>('')
     const [loading, setLoading] = useState(true)
     const [interviews, setInterviews] = useState<any[]>([])
     const [projects, setProjects] = useState<any[]>([])
@@ -17,23 +19,65 @@ export default function Dashboard() {
 
     useEffect(() => {
         const checkUser = async () => {
-            const { data: { user } } = await supabase.auth.getUser()
-            if (!user) {
+            const { data: { session } } = await supabase.auth.getSession()
+            if (!session) {
                 router.push('/login')
             } else {
-                setUser(user)
-                loadDashboardData()
+                setSession(session)
+                setUser(session.user)
+
+                // Get user ID from session
+                const userId = session.user.id
+
+                if (!userId) {
+                    console.error('No user ID in session:', session)
+                    return
+                }
+
+                // Fetch user's organization from API
+                try {
+                    console.log('Fetching organization for user:', userId)
+                    const res = await fetch(
+                        `${API_URL}/api/user/organization?user_id=${userId}`,
+                        {
+                            headers: {
+                                'Authorization': `Bearer ${session.access_token}`
+                            }
+                        }
+                    )
+
+                    if (!res.ok) {
+                        console.error('API error:', res.status, await res.text())
+                        return
+                    }
+
+                    const data = await res.json()
+                    console.log('Organization response:', data)
+
+                    if (data.success && data.organization_id) {
+                        setOrganizationId(data.organization_id)
+                        loadDashboardData(session, data.organization_id)
+                    } else {
+                        console.error('No organization found for user')
+                    }
+                } catch (error) {
+                    console.error('Error fetching organization:', error)
+                }
             }
             setLoading(false)
         }
         checkUser()
     }, [router])
 
-    const loadDashboardData = async () => {
-        const orgId = '00000000-0000-0000-0000-000000000001'
+    const loadDashboardData = async (session: any, orgId: string) => {
+        if (!orgId) return
 
         try {
-            const res = await fetch(`${API_URL}/api/interviews?organization_id=${orgId}`)
+            const res = await fetch(`${API_URL}/api/interviews?organization_id=${orgId}`, {
+                headers: {
+                    'Authorization': `Bearer ${session.access_token}`
+                }
+            })
             const data = await res.json()
             if (data.success) {
                 const completedInterviews = data.interviews.filter(
@@ -46,7 +90,11 @@ export default function Dashboard() {
         }
 
         try {
-            const res = await fetch(`${API_URL}/api/projects?organization_id=${orgId}`)
+            const res = await fetch(`${API_URL}/api/projects?organization_id=${orgId}`, {
+                headers: {
+                    'Authorization': `Bearer ${session.access_token}`
+                }
+            })
             const data = await res.json()
             if (data.success) {
                 setProjects(data.projects.slice(0, 5))
@@ -57,7 +105,11 @@ export default function Dashboard() {
 
         // Load expense summary
         try {
-            const res = await fetch(`${API_URL}/api/expenses/summary?organization_id=${orgId}`)
+            const res = await fetch(`${API_URL}/api/expenses/summary?organization_id=${orgId}`, {
+                headers: {
+                    'Authorization': `Bearer ${session.access_token}`
+                }
+            })
             const data = await res.json()
             if (data.success) {
                 setExpenseSummary(data.summary)
