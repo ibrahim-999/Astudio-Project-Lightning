@@ -3,23 +3,53 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import toast, { Toaster } from 'react-hot-toast'
 import '../../styles.css'
-import { API_URL } from '@/lib/supabase'
+import { API_URL, supabase } from '@/lib/supabase'
 
 
 export default function ExpenseListPage() {
     const [expenses, setExpenses] = useState<any[]>([])
     const [summary, setSummary] = useState<any>(null)
     const [loading, setLoading] = useState(true)
+    const [session, setSession] = useState(null)
+    const [organizationId, setOrganizationId] = useState('')
+
     const router = useRouter()
 
+    // UPDATE useEffect (replace lines 18-38) - ADD the function calls
     useEffect(() => {
-        loadExpenses()
-        loadSummary()
+        const initData = async () => {
+            const { data: { session } } = await supabase.auth.getSession()
+            setSession(session)
+
+            if (!session) {
+                router.push('/login')
+            } else {
+                // Fetch organization ID
+                try {
+                    const orgRes = await fetch(`${API_URL}/api/user/organization?user_id=${session.user.id}`)
+                    const orgData = await orgRes.json()
+                    if (orgData.success && orgData.organization_id) {
+                        setOrganizationId(orgData.organization_id)
+                        // ✅ ADD THESE TWO LINES:
+                        loadExpenses(session.access_token, orgData.organization_id)
+                        loadSummary(session.access_token, orgData.organization_id)
+                    }
+                } catch (error) {
+                    console.error('Error fetching org:', error)
+                    setLoading(false)  // ✅ ADD THIS to stop loading on error
+                }
+            }
+        }
+        initData()
     }, [])
 
-    const loadExpenses = async () => {
+    const loadExpenses = async (token: string, orgId: string) => {
         try {
-            const response = await fetch(`${API_URL}/api/expenses?organization_id=00000000-0000-0000-0000-000000000001`)
+            const response = await fetch(`${API_URL}/api/expenses?organization_id=${orgId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
             const data = await response.json()
 
             if (data.success) {
@@ -35,9 +65,13 @@ export default function ExpenseListPage() {
         }
     }
 
-    const loadSummary = async () => {
+    const loadSummary = async (token: string, orgId: string) => {
         try {
-            const response = await fetch(`${API_URL}/api/expenses/summary?organization_id=00000000-0000-0000-0000-000000000001`)
+            const response = await fetch(`${API_URL}/api/expenses/summary?organization_id=${orgId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
             const data = await response.json()
 
             if (data.success) {
