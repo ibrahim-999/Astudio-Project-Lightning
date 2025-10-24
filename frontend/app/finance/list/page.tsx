@@ -15,7 +15,6 @@ export default function ExpenseListPage() {
 
     const router = useRouter()
 
-    // UPDATE useEffect (replace lines 18-38) - ADD the function calls
     useEffect(() => {
         const initData = async () => {
             const { data: { session } } = await supabase.auth.getSession()
@@ -24,7 +23,6 @@ export default function ExpenseListPage() {
             if (!session) {
                 router.push('/login')
             } else {
-                // Fetch organization ID
                 try {
                     const orgRes = await fetch(`${API_URL}/api/user/organization?user_id=${session.user.id}`)
                     const orgData = await orgRes.json()
@@ -36,7 +34,7 @@ export default function ExpenseListPage() {
                     }
                 } catch (error) {
                     console.error('Error fetching org:', error)
-                    setLoading(false)  // ✅ ADD THIS to stop loading on error
+                    setLoading(false)
                 }
             }
         }

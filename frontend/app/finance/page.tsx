@@ -1,9 +1,9 @@
 'use client'
-import { useState, useEffect } from 'react' // Add useEffect
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import toast, { Toaster } from 'react-hot-toast'
 import '../styles.css'
-import { API_URL, supabase } from '@/lib/supabase' // Add supabase
+import { API_URL, supabase } from '@/lib/supabase'
 
 export default function AddExpensePage() {
     const [description, setDescription] = useState('')
@@ -25,7 +25,6 @@ export default function AddExpensePage() {
             if (!session) {
                 router.push('/login')
             } else {
-                // Fetch organization ID
                 try {
                     const orgRes = await fetch(`${API_URL}/api/user/organization?user_id=${session.user.id}`)
                     const orgData = await orgRes.json()
@@ -59,10 +58,10 @@ export default function AddExpensePage() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session.access_token}` // Add JWT
+                    'Authorization': `Bearer ${session.access_token}`
                 },
                 body: JSON.stringify({
-                    organization_id: organizationId,  // ✅ ADD THIS LINE
+                    organization_id: organizationId,
                     description,
                     amount: parseFloat(amount),
                     vendor: vendor || null,
@@ -75,7 +74,6 @@ export default function AddExpensePage() {
             if (data.success) {
                 setAiCategory(data.ai_category)
 
-                // Show AI tier and models used
                 const tier = data.tier || 1
                 let message = `✅ Expense added!\n\n`
                 message += `📁 Category: ${data.ai_category}\n`
@@ -95,7 +93,6 @@ export default function AddExpensePage() {
                     }
                 })
 
-                // Show deep insights separately
                 if (data.ai_insights) {
                     setTimeout(() => {
                         toast(data.ai_insights, {
