@@ -337,6 +337,33 @@ export default function Dashboard() {
 
                         <div className="modules-grid">
                             <div className="module-card active">
+                                <div className="module-icon">🤖</div>
+                                <div className="module-badge next">Active</div>
+                                <h3>AI Assistant</h3>
+                                <p>Unified AI chat interface. Talk naturally to manage expenses, projects, and HR - all in one conversation.</p>
+                                <ul className="module-features">
+                                    <li>Natural language commands</li>
+                                    <li>Cross-module intelligence</li>
+                                    <li>Proactive AI suggestions</li>
+                                </ul>
+                                <button
+                                    onClick={() => router.push('/dashboard')}
+                                    style={{
+                                        width: '100%',
+                                        padding: '16px',
+                                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '12px',
+                                        fontSize: '16px',
+                                        fontWeight: 600,
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    AI Chat Assistant 💬
+                                </button>
+                            </div>
+                            <div className="module-card active">
                                 <div className="module-icon">🧑‍💼</div>
                                 <div className="module-badge next">Active</div>
                                 <h3>HR Module</h3>
@@ -363,7 +390,6 @@ export default function Dashboard() {
                                     Start Interview 🚀
                                 </button>
                             </div>
-
                             <div className="module-card active">
                                 <div className="module-icon">📊</div>
                                 <div className="module-badge next">Active</div>
@@ -391,7 +417,6 @@ export default function Dashboard() {
                                     Create Project 🚀
                                 </button>
                             </div>
-
                             <div className="module-card active">
                                 <div className="module-icon">💰</div>
                                 <div className="module-badge next">Active</div>
@@ -420,17 +445,17 @@ export default function Dashboard() {
                                 </button>
                             </div>
                             <div className="module-card active">
-                                <div className="module-icon">🤖</div>
+                                <div className="module-icon">🚀</div>
                                 <div className="module-badge next">Active</div>
-                                <h3>AI Assistant</h3>
-                                <p>Unified AI chat interface. Talk naturally to manage expenses, projects, and HR - all in one conversation.</p>
+                                <h3>Migration</h3>
+                                <p>Magic Import tool - drag any CSV file, AI figures out the rest. Client operational in under 2 minutes.</p>
                                 <ul className="module-features">
-                                    <li>Natural language commands</li>
-                                    <li>Cross-module intelligence</li>
-                                    <li>Proactive AI suggestions</li>
+                                    <li>AI-powered CSV analysis</li>
+                                    <li>Smart field mapping</li>
+                                    <li>Zero-friction data import</li>
                                 </ul>
                                 <button
-                                    onClick={() => router.push('/dashboard')}
+                                    onClick={() => router.push('/migration')}
                                     style={{
                                         width: '100%',
                                         padding: '16px',
@@ -443,33 +468,39 @@ export default function Dashboard() {
                                         cursor: 'pointer'
                                     }}
                                 >
-                                    Return to AI Chat 💬
+                                    Import Data 🚀
                                 </button>
                             </div>
                         </div>
 
+                        /* ALTERNATIVE VERSION - More concise */
+
                         <div className="info-grid">
                             <div className="info-card">
-                                <h3>✅ Day 3 Complete!</h3>
+                                <h3>✅ Assessment Complete!</h3>
                                 <ul className="checklist">
-                                    <li>HR Module with AI Interviewer</li>
-                                    <li>Projects with AI task generation</li>
-                                    <li>Finance with AI categorization</li>
+                                    <li>AI Chat Assistant - Natural language interface</li>
+                                    <li>HR Module - AI-powered interviews</li>
+                                    <li>Projects - Intelligent planning & coordination</li>
+                                    <li>Finance - Smart expense categorization</li>
+                                    <li>Migration - Zero-friction data import</li>
                                     <li>All modules interconnected</li>
                                     <li>User logged in: {user?.email}</li>
                                 </ul>
                             </div>
 
                             <div className="info-card next-steps-card">
-                                <h3>🎉 All 3 Modules Complete!</h3>
+                                <h3>🎉 5 AI-Native Modules Ready!</h3>
                                 <p style={{ marginBottom: '20px', opacity: 0.9 }}>
-                                    HR, Projects, and Finance modules are fully functional with AI!
+                                    Complete AI-native ERP system ready for creative agencies
                                 </p>
                                 <ul className="next-steps-list">
-                                    <li>AI Interview Conductor with analysis</li>
-                                    <li>Natural language project creation</li>
-                                    <li>AI expense categorization</li>
-                                    <li>Real-time data across all modules</li>
+                                    <li>Unified AI chat orchestrating all modules</li>
+                                    <li>AI conducts interviews & analyzes candidates</li>
+                                    <li>Natural language project creation & management</li>
+                                    <li>Automatic expense categorization & predictions</li>
+                                    <li>Magic CSV import in under 2 minutes</li>
+                                    <li>Real-time synchronization across all modules</li>
                                 </ul>
                             </div>
                         </div>
