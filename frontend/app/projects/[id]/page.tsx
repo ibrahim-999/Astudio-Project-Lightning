@@ -50,7 +50,7 @@ export default function ProjectDetailsPage() {
         try {
             const response = await fetch(`${API_URL}/api/project/${projectId}/tasks`, {
                 headers: {
-                    'Authorization': `Bearer ${session.access_token}`
+                    'Authorization': `Bearer ${session?.access_token || ''}`
                 }
             })
             const data = await response.json()
@@ -73,7 +73,7 @@ export default function ProjectDetailsPage() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session.access_token}`
+                    'Authorization': `Bearer ${session?.access_token || ''}`
                 },
                 body: JSON.stringify({
                     task_id: taskId,

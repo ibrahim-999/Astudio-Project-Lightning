@@ -69,7 +69,7 @@ export default function MigrationPage() {
             const response = await fetch(`${API_URL}/api/migration/analyze-csv`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${session.access_token}`  // 
+                    'Authorization': `Bearer ${session?.access_token || ''}`  //
                 },
                 body: formData
             })
@@ -94,7 +94,7 @@ export default function MigrationPage() {
             const response = await fetch(`${API_URL}/api/migration/import-expenses`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${session.access_token}`  // 
+                    'Authorization': `Bearer ${session?.access_token || ''}`  //
                 },
                 body: formData
             })

@@ -61,7 +61,7 @@ export default function AddExpensePage() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session.access_token}`
+                    'Authorization': `Bearer ${session?.access_token || ''}`
                 },
                 body: JSON.stringify({
                     organization_id: organizationId,

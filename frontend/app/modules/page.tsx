@@ -41,7 +41,7 @@ export default function Dashboard() {
                         `${API_URL}/api/user/organization?user_id=${userId}`,
                         {
                             headers: {
-                                'Authorization': `Bearer ${session.access_token}`
+                                'Authorization': `Bearer ${session?.access_token || ''}`
                             }
                         }
                     )
@@ -75,7 +75,7 @@ export default function Dashboard() {
         try {
             const res = await fetch(`${API_URL}/api/interviews?organization_id=${orgId}`, {
                 headers: {
-                    'Authorization': `Bearer ${session.access_token}`
+                    'Authorization': `Bearer ${session?.access_token || ''}`
                 }
             })
             const data = await res.json()
@@ -92,7 +92,7 @@ export default function Dashboard() {
         try {
             const res = await fetch(`${API_URL}/api/projects?organization_id=${orgId}`, {
                 headers: {
-                    'Authorization': `Bearer ${session.access_token}`
+                    'Authorization': `Bearer ${session?.access_token || ''}`
                 }
             })
             const data = await res.json()
@@ -107,7 +107,7 @@ export default function Dashboard() {
         try {
             const res = await fetch(`${API_URL}/api/expenses/summary?organization_id=${orgId}`, {
                 headers: {
-                    'Authorization': `Bearer ${session.access_token}`
+                    'Authorization': `Bearer ${session?.access_token || ''}`
                 }
             })
             const data = await res.json()

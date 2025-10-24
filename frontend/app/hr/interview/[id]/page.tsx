@@ -73,7 +73,7 @@ export default function InterviewChatPage() {
         try {
             const response = await fetch(`${API_URL}/api/interview/${interviewId}`, {
                 headers: {
-                    'Authorization': `Bearer ${session.access_token}`
+                    'Authorization': `Bearer ${session?.access_token || ''}`
                 }
             })
             const data = await response.json()
@@ -111,7 +111,7 @@ export default function InterviewChatPage() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session.access_token}`
+                    'Authorization': `Bearer ${session?.access_token || ''}`
                 },
                 body: JSON.stringify({
                     interview_id: interviewId,
@@ -152,7 +152,7 @@ export default function InterviewChatPage() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session.access_token}`
+                    'Authorization': `Bearer ${session?.access_token || ''}`
                 },
                 body: JSON.stringify({
                     interview_id: interviewId,

@@ -116,7 +116,7 @@ export default function UnifiedAIPage() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session.access_token}` // Add JWT
+                    'Authorization': `Bearer ${session?.access_token || ''}`
                 },
                 body: JSON.stringify({
                     message: userMessage,
