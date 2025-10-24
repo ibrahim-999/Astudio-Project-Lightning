@@ -10,6 +10,8 @@ ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 CORS_ORIGINS = ["http://localhost:3000"]
+SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET")
+
 
 API_VERSION = "1.0.0"
 API_TITLE = "Project Lightning AI Service"

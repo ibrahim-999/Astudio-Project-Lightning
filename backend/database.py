@@ -175,4 +175,24 @@ class DatabaseService:
             .execute()
             return result.data["organization_id"]
 
+    def get_user_organization(self, user_id: str) -> str:
+        """
+        Get the organization_id for a user
+        """
+        try:
+            response = self.supabase.table("organization_members")\
+                .select("organization_id")\
+                .eq("user_id", user_id)\
+                .eq("status", "active")\
+                .limit(1)\
+                .maybe_single()\
+                .execute()
+
+            if response.data:
+                return response.data.get("organization_id")
+            return None
+        except Exception as e:
+            print(f"Error getting user organization: {e}")
+            return None
+
 db = DatabaseService()

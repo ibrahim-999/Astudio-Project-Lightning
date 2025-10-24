@@ -17,13 +17,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from routes import interview, health, project, finance, migration, orchestrator
+from routes import interview, health, project, finance, migration, orchestrator, user, auth
 app.include_router(health.router)
 app.include_router(interview.router)
 app.include_router(project.router)
 app.include_router(finance.router)
 app.include_router(migration.router)
 app.include_router(orchestrator.router)
+app.include_router(user.router)
+app.include_router(auth.router)  # ✅ Added auth router
 
 @app.on_event("startup")
 async def startup_event():
