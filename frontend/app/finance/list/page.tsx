@@ -28,7 +28,6 @@ export default function ExpenseListPage() {
                     const orgData = await orgRes.json()
                     if (orgData.success && orgData.organization_id) {
                         setOrganizationId(orgData.organization_id)
-                        // ✅ ADD THESE TWO LINES:
                         loadExpenses(session.access_token, orgData.organization_id)
                         loadSummary(session.access_token, orgData.organization_id)
                     }
@@ -39,8 +38,7 @@ export default function ExpenseListPage() {
             }
         }
         initData()
-    }, [])
-
+    }, [router])
     const loadExpenses = async (token: string, orgId: string) => {
         try {
             const response = await fetch(`${API_URL}/api/expenses?organization_id=${orgId}`, {

@@ -1,8 +1,7 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { API_URL } from '@/lib/supabase'
-
+import { API_URL, supabase } from '@/lib/supabase'  // ✅ ADD supabase
 
 export default function MigrationPage() {
     const [file, setFile] = useState<File | null>(null)
@@ -11,7 +10,32 @@ export default function MigrationPage() {
     const [result, setResult] = useState<any>(null)
     const [isDragging, setIsDragging] = useState(false)
     const [showSuccess, setShowSuccess] = useState(false)
+    const [session, setSession] = useState(null)  // 
+    const [organizationId, setOrganizationId] = useState('')  // 
     const router = useRouter()
+
+
+    useEffect(() => {
+        const initData = async () => {
+            const { data: { session } } = await supabase.auth.getSession()
+            setSession(session)
+
+            if (!session) {
+                router.push('/login')
+            } else {
+                try {
+                    const orgRes = await fetch(`${API_URL}/api/user/organization?user_id=${session.user.id}`)
+                    const orgData = await orgRes.json()
+                    if (orgData.success && orgData.organization_id) {
+                        setOrganizationId(orgData.organization_id)
+                    }
+                } catch (error) {
+                    console.error('Error fetching org:', error)
+                }
+            }
+        }
+        initData()
+    }, [])
 
     const handleDragOver = (e: React.DragEvent) => {
         e.preventDefault()
@@ -32,16 +56,20 @@ export default function MigrationPage() {
     }
 
     const analyzeFile = async () => {
-        if (!file) return
+        if (!file || !session || !organizationId) return  // ✅ ADD CHECKS
 
         setAnalyzing(true)
         setResult(null)
         const formData = new FormData()
         formData.append('file', file)
+        formData.append('organization_id', organizationId)  // 
 
         try {
             const response = await fetch(`${API_URL}/api/migration/analyze-csv`, {
                 method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${session.access_token}`  // 
+                },
                 body: formData
             })
             const data = await response.json()
@@ -54,15 +82,19 @@ export default function MigrationPage() {
     }
 
     const importFile = async () => {
-        if (!file) return
+        if (!file || !session || !organizationId) return  // ✅ ADD CHECKS
 
         setImporting(true)
         const formData = new FormData()
         formData.append('file', file)
+        formData.append('organization_id', organizationId)  // 
 
         try {
             const response = await fetch(`${API_URL}/api/migration/import-expenses`, {
                 method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${session.access_token}`  // 
+                },
                 body: formData
             })
             const data = await response.json()
