@@ -2,7 +2,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import '../../../styles.css'
-import { API_URL } from '@/lib/supabase'
+import { API_URL, supabase } from '@/lib/supabase'
 
 
 interface Message {
@@ -23,6 +23,9 @@ export default function InterviewChatPage() {
     const [questionNumber, setQuestionNumber] = useState(1)
     const [totalQuestions] = useState(8)
     const [analyzing, setAnalyzing] = useState(false)
+    const [session, setSession] = useState(null)
+    const [organizationId, setOrganizationId] = useState('')
+
 
     const messagesEndRef = useRef<null | HTMLDivElement>(null)
 
@@ -31,16 +34,47 @@ export default function InterviewChatPage() {
     }
 
     useEffect(() => {
+        const initData = async () => {
+            const { data: { session } } = await supabase.auth.getSession()
+            setSession(session)
+
+            if (!session) {
+                router.push('/login')
+            } else {
+                try {
+                    const orgRes = await fetch(`${API_URL}/api/user/organization?user_id=${session.user.id}`)
+                    const orgData = await orgRes.json()
+                    if (orgData.success && orgData.organization_id) {
+                        setOrganizationId(orgData.organization_id)
+                    }
+                } catch (error) {
+                    console.error('Error fetching org:', error)
+                }
+            }
+        }
+        initData()
+    }, [])
+
+
+    useEffect(() => {
         scrollToBottom()
     }, [messages, loading])
 
     useEffect(() => {
-        loadInterview()
-    }, [interviewId])
+        if (session) {
+            loadInterview()
+        }
+    }, [interviewId, session])
 
     const loadInterview = async () => {
+        if (!session) return
+
         try {
-            const response = await fetch(`${API_URL}/api/interview/${interviewId}`)
+            const response = await fetch(`${API_URL}/api/interview/${interviewId}`, {
+                headers: {
+                    'Authorization': `Bearer ${session.access_token}`
+                }
+            })
             const data = await response.json()
 
             if (data.success && data.transcripts) {
@@ -51,7 +85,6 @@ export default function InterviewChatPage() {
                 }))
                 setMessages(formattedMessages)
 
-                // Check if already complete
                 if (data.interview.status === 'completed') {
                     setIsComplete(true)
                 }
@@ -60,13 +93,11 @@ export default function InterviewChatPage() {
             console.error('Error loading interview:', error)
         }
     }
-
     const sendResponse = async () => {
-        if (!currentResponse.trim() || loading) return
+        if (!currentResponse.trim() || loading || !session) return
 
         setLoading(true)
 
-        // Add candidate message to UI immediately
         const candidateMessage: Message = {
             speaker: 'candidate',
             message: currentResponse
@@ -75,19 +106,22 @@ export default function InterviewChatPage() {
         setCurrentResponse('')
 
         try {
-            const response = await fetch('http://localhost:8000/api/interview/respond', {
+            const response = await fetch(`${API_URL}/api/interview/respond`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`
+                },
                 body: JSON.stringify({
                     interview_id: interviewId,
-                    candidate_response: currentResponse
+                    candidate_response: currentResponse,
+                    organization_id: organizationId
                 })
             })
 
             const data = await response.json()
 
             if (data.success) {
-                // Add AI response
                 const aiMessage: Message = {
                     speaker: 'ai',
                     message: data.ai_message
@@ -95,7 +129,6 @@ export default function InterviewChatPage() {
                 setMessages(prev => [...prev, aiMessage])
                 setQuestionNumber(data.question_number)
 
-                // Check if interview is complete
                 if (data.is_complete) {
                     setIsComplete(true)
                 }
@@ -109,19 +142,26 @@ export default function InterviewChatPage() {
     }
 
     const analyzeInterview = async () => {
+        if (!session) return
+
         setAnalyzing(true)
 
         try {
-            const response = await fetch('http://localhost:8000/api/interview/analyze', {
+            const response = await fetch(`${API_URL}/api/interview/analyze`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ interview_id: interviewId })
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`
+                },
+                body: JSON.stringify({
+                    interview_id: interviewId,
+                    organization_id: organizationId
+                })
             })
 
             const data = await response.json()
 
             if (data.success) {
-                // Redirect to results page
                 router.push(`/hr/interview/${interviewId}/results`)
             }
         } catch (error) {

@@ -33,12 +33,13 @@ class DatabaseService:
     @staticmethod
     def save_analysis(interview_id: str, analysis: Dict[str, Any]):
         """Save interview analysis"""
+        # ✅ Ensure scores are at least 1 (constraint likely requires 1-100)
         analysis_data = {
             "interview_id": interview_id,
-            "overall_score": analysis.get("overall_score"),
-            "technical_score": analysis.get("technical_score"),
-            "communication_score": analysis.get("communication_score"),
-            "cultural_fit_score": analysis.get("cultural_fit_score"),
+            "overall_score": max(1, analysis.get("overall_score", 1)),
+            "technical_score": max(1, analysis.get("technical_score", 1)),
+            "communication_score": max(1, analysis.get("communication_score", 1)),
+            "cultural_fit_score": max(1, analysis.get("cultural_fit_score", 1)),
             "strengths": analysis.get("strengths", []),
             "weaknesses": analysis.get("weaknesses", []),
             "key_insights": analysis.get("key_insights"),

@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import '../../../../styles.css'
-import { API_URL } from '@/lib/supabase'
+import { API_URL, supabase } from '@/lib/supabase'
 
 
 interface Analysis {
@@ -25,14 +25,41 @@ export default function InterviewResultsPage() {
     const [interview, setInterview] = useState<any>(null)
     const [analysis, setAnalysis] = useState<Analysis | null>(null)
     const [loading, setLoading] = useState(true)
+    const [session, setSession] = useState(null)
+    const [organizationId, setOrganizationId] = useState('')
+
 
     useEffect(() => {
-        loadResults()
+        const initData = async () => {
+            const { data: { session } } = await supabase.auth.getSession()
+            setSession(session)
+
+            if (!session) {
+                router.push('/login')
+            } else {
+                try {
+                    const orgRes = await fetch(`${API_URL}/api/user/organization?user_id=${session.user.id}`)
+                    const orgData = await orgRes.json()
+                    if (orgData.success && orgData.organization_id) {
+                        setOrganizationId(orgData.organization_id)
+                    }
+                } catch (error) {
+                    console.error('Error fetching org:', error)
+                }
+
+                loadResults(session.access_token)
+            }
+        }
+        initData()
     }, [interviewId])
 
-    const loadResults = async () => {
+    const loadResults = async (token: string) => {
         try {
-            const response = await fetch(`${API_URL}/api/interview/${interviewId}`)
+            const response = await fetch(`${API_URL}/api/interview/${interviewId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
             const data = await response.json()
 
             if (data.success) {
