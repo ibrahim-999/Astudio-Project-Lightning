@@ -1,3 +1,16 @@
+"""
+User API endpoints - Works with user_profiles table
+"""
+from fastapi import APIRouter, HTTPException, Depends
+from supabase import create_client
+from config import SUPABASE_URL, SUPABASE_KEY
+
+router = APIRouter(prefix="/api/user", tags=["user"])
+
+def get_supabase():
+    return create_client(SUPABASE_URL, SUPABASE_KEY)
+
+
 @router.get("/organization")
 async def get_user_organization(
     user_id: str,
@@ -18,11 +31,11 @@ async def get_user_organization(
                 .maybe_single()\
                 .execute()
 
-            print(f"user_profiles response: {response}")  #
+            print(f"user_profiles response: {response}")
 
             if response.data and response.data.get("organization_id"):
                 org_id = response.data.get("organization_id")
-                print(f"✅ Found org: {org_id}")  #
+                print(f"✅ Found org: {org_id}")
                 return {
                     "success": True,
                     "organization_id": org_id
@@ -39,11 +52,11 @@ async def get_user_organization(
                 .maybe_single()\
                 .execute()
 
-            print(f"organization_members response: {response}")  #
+            print(f"organization_members response: {response}")
 
             if response.data and response.data.get("organization_id"):
                 org_id = response.data.get("organization_id")
-                print(f"✅ Found org in members: {org_id}")  #
+                print(f"✅ Found org in members: {org_id}")
                 return {
                     "success": True,
                     "organization_id": org_id
@@ -52,7 +65,7 @@ async def get_user_organization(
             print(f"❌ organization_members check failed: {e}")
 
         # No organization found
-        print(f"❌ NO ORG FOUND FOR USER: {user_id}")  #
+        print(f"❌ NO ORG FOUND FOR USER: {user_id}")
         return {
             "success": False,
             "error": "No active organization found for user"
