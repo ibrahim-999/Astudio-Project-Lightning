@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase, API_URL } from '@/lib/supabase'
-import type { Session } from '@supabase/supabase-js'  // At the top
+import type { Session } from '@supabase/supabase-js'  
 
 
 interface Message {
@@ -23,7 +23,7 @@ export default function UnifiedAIPage() {
     const [loading, setLoading] = useState(false)
     const [isListening, setIsListening] = useState(false)
     const [voiceEnabled, setVoiceEnabled] = useState(false)
-    const [session, setSession] = useState<Session | null>(null)  // In the component // Add session state
+    const [session, setSession] = useState<Session | null>(null)   // Add session state
     const messagesEndRef = useRef<null | HTMLDivElement>(null)
     const recognitionRef = useRef<any>(null)
     const [organizationId, setOrganizationId] = useState('')

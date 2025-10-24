@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { API_URL, supabase } from '@/lib/supabase'  // ✅ ADD supabase
-import type { Session } from '@supabase/supabase-js'  // At the top
+import type { Session } from '@supabase/supabase-js'  
 
 export default function MigrationPage() {
     const [file, setFile] = useState<File | null>(null)
@@ -11,7 +11,7 @@ export default function MigrationPage() {
     const [result, setResult] = useState<any>(null)
     const [isDragging, setIsDragging] = useState(false)
     const [showSuccess, setShowSuccess] = useState(false)
-    const [session, setSession] = useState<Session | null>(null)  // In the component  // 
+    const [session, setSession] = useState<Session | null>(null)    // 
     const [organizationId, setOrganizationId] = useState('')  // 
     const router = useRouter()
 

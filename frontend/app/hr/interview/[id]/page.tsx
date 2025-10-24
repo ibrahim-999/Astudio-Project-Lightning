@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import '../../../styles.css'
 import { API_URL, supabase } from '@/lib/supabase'
-import type { Session } from '@supabase/supabase-js'  // At the top
+import type { Session } from '@supabase/supabase-js'  
 
 
 interface Message {
@@ -24,7 +24,7 @@ export default function InterviewChatPage() {
     const [questionNumber, setQuestionNumber] = useState(1)
     const [totalQuestions] = useState(8)
     const [analyzing, setAnalyzing] = useState(false)
-    const [session, setSession] = useState<Session | null>(null)  // In the component
+    const [session, setSession] = useState<Session | null>(null)  
     const [organizationId, setOrganizationId] = useState('')
 
 

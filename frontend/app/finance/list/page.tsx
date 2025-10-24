@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import toast, { Toaster } from 'react-hot-toast'
 import '../../styles.css'
 import { API_URL, supabase } from '@/lib/supabase'
-import type { Session } from '@supabase/supabase-js'  // At the top
+import type { Session } from '@supabase/supabase-js'  
 
 
 
@@ -12,7 +12,7 @@ export default function ExpenseListPage() {
     const [expenses, setExpenses] = useState<any[]>([])
     const [summary, setSummary] = useState<any>(null)
     const [loading, setLoading] = useState(true)
-    const [session, setSession] = useState<Session | null>(null)  // In the component
+    const [session, setSession] = useState<Session | null>(null)  
     const [organizationId, setOrganizationId] = useState('')
 
     const router = useRouter()
