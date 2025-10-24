@@ -1,16 +1,3 @@
-"""
-User API endpoints - Works with user_profiles table
-"""
-from fastapi import APIRouter, HTTPException, Depends
-from supabase import create_client
-from config import SUPABASE_URL, SUPABASE_KEY
-
-router = APIRouter(prefix="/api/user", tags=["user"])
-
-def get_supabase():
-    return create_client(SUPABASE_URL, SUPABASE_KEY)
-
-
 @router.get("/organization")
 async def get_user_organization(
     user_id: str,
@@ -18,10 +5,12 @@ async def get_user_organization(
 ):
     """
     Get the organization_id for a user
-    Checks both user_profiles and organization_members tables
     """
     try:
-        # First try user_profiles table (seems to be your main table)
+        print(f"=== GET USER ORG REQUEST ===")
+        print(f"User ID: {user_id}")
+
+        # First try user_profiles table
         try:
             response = supabase.table("user_profiles")\
                 .select("organization_id")\
@@ -29,13 +18,17 @@ async def get_user_organization(
                 .maybe_single()\
                 .execute()
 
+            print(f"user_profiles response: {response}")  #
+
             if response.data and response.data.get("organization_id"):
+                org_id = response.data.get("organization_id")
+                print(f"✅ Found org: {org_id}")  #
                 return {
                     "success": True,
-                    "organization_id": response.data.get("organization_id")
+                    "organization_id": org_id
                 }
         except Exception as e:
-            print(f"user_profiles check failed: {e}")
+            print(f"❌ user_profiles check failed: {e}")
 
         # Fallback: try organization_members table
         try:
@@ -46,20 +39,25 @@ async def get_user_organization(
                 .maybe_single()\
                 .execute()
 
+            print(f"organization_members response: {response}")  #
+
             if response.data and response.data.get("organization_id"):
+                org_id = response.data.get("organization_id")
+                print(f"✅ Found org in members: {org_id}")  #
                 return {
                     "success": True,
-                    "organization_id": response.data.get("organization_id")
+                    "organization_id": org_id
                 }
         except Exception as e:
-            print(f"organization_members check failed: {e}")
+            print(f"❌ organization_members check failed: {e}")
 
-        # No organization found in either table
+        # No organization found
+        print(f"❌ NO ORG FOUND FOR USER: {user_id}")  #
         return {
             "success": False,
             "error": "No active organization found for user"
         }
 
     except Exception as e:
-        print(f"Error getting user organization: {e}")
+        print(f"❌ ERROR getting user organization: {e}")
         raise HTTPException(status_code=500, detail=str(e))
