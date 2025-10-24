@@ -125,7 +125,7 @@ export default function AddExpensePage() {
                         </div>
                     </div>
                     <button onClick={() => router.push('/dashboard')} className="btn-signout">
-                        Back to Ai Chat
+                        Back to AI Chat
                     </button>
                 </div>
             </nav>

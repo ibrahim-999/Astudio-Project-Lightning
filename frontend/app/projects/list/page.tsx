@@ -85,7 +85,7 @@ export default function ProjectListPage() {
                             + New Project
                         </button>
                         <button onClick={() => router.push('/dashboard')} className="btn-signout">
-                            Dashboard
+                            Back To AI Chat
                         </button>
                     </div>
                 </div>

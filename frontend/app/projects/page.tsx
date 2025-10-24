@@ -31,7 +31,6 @@ export default function CreateProjectPage() {
             const data = await response.json()
 
             if (data.success) {
-                alert(`✅ Project "${data.project.project_name}" created with ${data.tasks.length} tasks!`)
                 router.push('/projects/list')
             } else {
                 alert('Failed to create project')
@@ -56,7 +55,7 @@ export default function CreateProjectPage() {
                         </div>
                     </div>
                     <button onClick={() => router.push('/dashboard')} className="btn-signout">
-                        Back to Ai Chat
+                        Back to AI Chat
                     </button>
                 </div>
             </nav>

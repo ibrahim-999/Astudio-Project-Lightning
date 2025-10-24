@@ -89,7 +89,7 @@ export default function InterviewResultsPage() {
                 <div className="container" style={{ textAlign: 'center', paddingTop: '100px' }}>
                     <h2>Analysis not found</h2>
                     <button onClick={() => router.push('/dashboard')} className="btn-signout">
-                        Back to Ai Chat
+                        Back to AI Chat
                     </button>
                 </div>
             </div>
@@ -109,7 +109,7 @@ export default function InterviewResultsPage() {
                         </div>
                     </div>
                     <button onClick={() => router.push('/dashboard')} className="btn-signout">
-                        Back to Ai Chat
+                        Back to AI Chat
                     </button>
                 </div>
             </nav>
@@ -306,7 +306,7 @@ export default function InterviewResultsPage() {
                             cursor: 'pointer'
                         }}
                     >
-                        Back to Dashboard
+                        Back to AI Chat
                     </button>
                 </div>
             </div>

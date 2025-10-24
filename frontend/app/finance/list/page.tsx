@@ -121,7 +121,7 @@ export default function ExpenseListPage() {
                             + Add Expense
                         </button>
                         <button onClick={() => router.push('/dashboard')} className="btn-signout">
-                            Back to Ai Chat
+                            Back to AI Chat
                         </button>
                     </div>
                 </div>
