@@ -41,9 +41,15 @@ export default function UnifiedAIPage() {
             if (!session) {
                 router.push('/login')
             } else {
-                // Fetch organization ID
                 try {
-                    const orgRes = await fetch(`${API_URL}/api/user/organization?user_id=${session.user.id}`)
+                    const orgRes = await fetch(
+                        `${API_URL}/api/user/organization?user_id=${session.user.id}`,
+                        {
+                            headers: {
+                                'Authorization': `Bearer ${session.access_token}`
+                            }
+                        }
+                    )
                     const orgData = await orgRes.json()
                     if (orgData.success && orgData.organization_id) {
                         setOrganizationId(orgData.organization_id)
@@ -56,7 +62,6 @@ export default function UnifiedAIPage() {
         initData()
     }, [])
 
-    // Text-to-Speech function
     const speak = (text: string) => {
         if (!voiceEnabled) return
 
@@ -71,7 +76,6 @@ export default function UnifiedAIPage() {
         window.speechSynthesis.speak(utterance)
     }
 
-    // Toggle voice listening
     const toggleListening = () => {
         if (!recognitionRef.current) {
             alert('Speech recognition not supported in this browser. Try Chrome or Edge.')
@@ -90,13 +94,24 @@ export default function UnifiedAIPage() {
     const sendMessage = async () => {
         if (!input.trim() || loading) return
 
-        if (!session) { // Check session
+        // Check if user is logged in
+        if (!session) {
             const errorMessage = {
                 role: 'ai' as const,
                 content: '❌ Please login first'
             }
             setMessages([...messages, errorMessage])
             router.push('/login')
+            return
+        }
+
+        // Check if organization ID is loaded
+        if (!organizationId) {
+            const errorMessage = {
+                role: 'ai' as const,
+                content: '⏳ Loading organization... please wait and try again.'
+            }
+            setMessages([...messages, errorMessage])
             return
         }
 
@@ -116,11 +131,11 @@ export default function UnifiedAIPage() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session?.access_token || ''}`
+                    'Authorization': `Bearer ${session.access_token}` // ✅ Removed optional chaining since we checked session
                 },
                 body: JSON.stringify({
                     message: userMessage,
-                    organization_id: organizationId,  //  LINE
+                    organization_id: organizationId,
                     conversation_history: messages.slice(-5).map(m => ({
                         role: m.role,
                         content: m.content
